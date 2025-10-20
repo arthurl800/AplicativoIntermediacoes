@@ -37,7 +37,15 @@ class DataController {
         $isFiltered = count(array_filter($filters)) > 0;
 
         // 1. CHAMA O MODEL PARA OBTER OS DADOS
-        if ($isFiltered) {
+        // Suporta parâmetro opcional 'columns' (ex: columns=Conta,Nome,Produto)
+        $requestedColumns = [];
+        if (!empty($_GET['columns'])) {
+            $requestedColumns = array_filter(array_map('trim', explode(',', $_GET['columns'])));
+        }
+
+        if (!empty($requestedColumns)) {
+            $dados = $this->intermediacaoModel->getDataWithColumns($requestedColumns);
+        } elseif ($isFiltered) {
             // Se houver filtros, carrega os dados filtrados
             $dados = $this->intermediacaoModel->getFilteredData($filters);
         } else {
@@ -45,12 +53,14 @@ class DataController {
             $dados = $this->intermediacaoModel->getAllData();
         }
 
-        // 2. CARREGA AS VIEWS
-        $base_dir = dirname(dirname(__DIR__));
-        include $base_dir . '/includes/header.php';
-        // A view principal para visualização dos dados (o Canvas que estamos focando)
-        include $base_dir . '/app/view/data/visualizacao_dados.php'; 
-        include $base_dir . '/includes/footer.php';
+    // 2. CARREGA AS VIEWS
+    $base_dir = dirname(dirname(__DIR__));
+    // Disponibiliza lista de colunas existentes na tabela para a view
+    $availableColumns = $this->intermediacaoModel->getAvailableColumns();
+    include $base_dir . '/includes/header.php';
+    // A view principal para visualização dos dados (o Canvas que estamos focando)
+    include $base_dir . '/app/view/dados/visualizacao_dados.php'; 
+    include $base_dir . '/includes/footer.php';
     }
     
     // Ação para o Dashboard (ainda não implementada)

@@ -16,6 +16,52 @@ class IntermediacaoModel {
             throw new Exception("Falha ao inicializar o modelo de intermediações: " . $e->getMessage());
         }
     }
+
+    /**
+     * Retorna lista de colunas da tabela INTERMEDIACOES.
+     * @return array
+     */
+    public function getAvailableColumns(): array {
+        try {
+            $stmt = $this->pdo->prepare("PRAGMA table_info({$this->tableName})");
+            $stmt->execute();
+            $cols = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $names = array_map(fn($c) => $c['name'], $cols);
+            return $names;
+        } catch (PDOException $e) {
+            error_log("Erro ao obter colunas da tabela: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Retorna os dados selecionando apenas as colunas fornecidas.
+     * Se $columns estiver vazio, retorna getAllData().
+     * @param array $columns
+     * @return array
+     */
+    public function getDataWithColumns(array $columns): array {
+        if (empty($columns)) {
+            return $this->getAllData();
+        }
+
+        // Sanitize columns: ensure they exist in the table
+        $available = $this->getAvailableColumns();
+        $safe = array_values(array_intersect($available, $columns));
+        if (empty($safe)) {
+            return [];
+        }
+
+        $cols = implode(', ', $safe);
+        try {
+            $stmt = $this->pdo->prepare("SELECT {$cols} FROM {$this->tableName} LIMIT 100");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erro ao buscar dados com colunas especificadas: " . $e->getMessage());
+            return [];
+        }
+    }
     
     /**
      * Busca todos os dados de intermediação (limitado a 100).

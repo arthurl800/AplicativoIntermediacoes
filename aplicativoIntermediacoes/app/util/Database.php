@@ -12,9 +12,28 @@ class Database {
     private function __construct() {
         // Tenta conectar ao banco de dados
         try {
+            // Verifica/garante que o diretório do DB exista e seja gravável
+            $dbDir = dirname($this->db_path);
+
+            if (!is_dir($dbDir)) {
+                // Tenta criar o diretório (se permissões permitirem)
+                @mkdir($dbDir, 0755, true);
+            }
+
+            if (!is_dir($dbDir) || !is_writable($dbDir)) {
+                throw new Exception("Diretório do DB '{$dbDir}' não é gravável pelo processo PHP. Verifique permissões do diretório e do usuário do processo web. Path: {$this->db_path}");
+            }
+
+            // Se o arquivo ainda não existe, tenta criá-lo (touch)
+            if (!file_exists($this->db_path)) {
+                if (@touch($this->db_path) === false) {
+                    throw new Exception("Falha ao criar o arquivo de banco de dados em '{$this->db_path}'. Verifique permissões do diretório '{$dbDir}'.");
+                }
+            }
+
             // Conexão SQLite
             $this->pdo = new PDO("sqlite:{$this->db_path}");
-            
+
             // Configurações importantes
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
@@ -25,9 +44,13 @@ class Database {
             }
             
         } catch (PDOException $e) {
-            // Em caso de erro fatal na conexão
+            // Erros vindos do PDO (ex.: unable to open database file)
             error_log("Database Connection Error: " . $e->getMessage());
-            die("Erro de conexão com o banco de dados. Verifique o arquivo Database.php. Detalhe: " . $e->getMessage());
+            die("Erro de conexão com o banco de dados. Detalhe: " . $e->getMessage() . "\nSugestão: verifique se o arquivo '{$this->db_path}' existe e se o processo PHP tem permissão de leitura/escrita.");
+        } catch (Exception $e) {
+            // Erros de setup (permissões/criação de diretório)
+            error_log("Database Setup Error: " . $e->getMessage());
+            die("Erro ao configurar o banco de dados: " . $e->getMessage() . "\nSugestão: verifique permissões do diretório e arquivo app_data.db (ex.: chown -R www-data:www-data . ; chmod 755 .)");
         }
     }
 

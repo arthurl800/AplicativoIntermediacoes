@@ -15,6 +15,27 @@
         </a>
     </div>
 
+    <!-- Botão rápido para visualizar colunas específicas -->
+    <div style="margin-bottom: 15px;">
+        <?php if (!empty($availableColumns)): ?>
+            <div style="margin-bottom:8px; font-size:0.95em; color:#333;">Colunas disponíveis: <strong><?= htmlspecialchars(implode(', ', $availableColumns)) ?></strong></div>
+
+            <!-- Exemplo: link que busca apenas as colunas solicitadas pelo usuário -->
+            <?php
+                // Colunas de exemplo pedidas pelo usuário
+                $sampleCols = ['Conta','Nome','Produto','Estrategia','Emissor','Vencimento','Taxa_Compra','Quantidade','Valor_Bruto','IOF','IR','Valor_Liquido','Data_Compra'];
+                // Intersect com as colunas disponíveis para evitar SQL injection
+                $validSample = array_values(array_intersect($availableColumns, $sampleCols));
+                $colsParam = htmlspecialchars(implode(',', $validSample));
+            ?>
+            <?php if (!empty($validSample)): ?>
+                <a href="index.php?controller=dados&action=visualizar&columns=<?= $colsParam ?>" style="background:#007bff;color:white;padding:8px 12px;border-radius:4px;text-decoration:none;font-weight:bold;">Ver colunas selecionadas (exemplo)</a>
+            <?php else: ?>
+                <div style="color:#856404;background:#fff3cd;padding:10px;border-radius:4px;">Nenhuma das colunas de exemplo está presente na tabela.</div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+
     <!-- Formulário de Filtros -->
     <form method="GET" action="index.php" style="background-color: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <input type="hidden" name="controller" value="dados">
