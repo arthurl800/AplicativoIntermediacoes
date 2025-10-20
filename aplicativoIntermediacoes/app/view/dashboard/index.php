@@ -21,6 +21,7 @@
             <p>Você pode começar a trabalhar na próxima etapa do seu projeto.</p>
             <ul>
                 <li><a href="index.php?controller=dados&action=visualizar">Visualizar os Dados de Intermediações</a></li>
+                <li><a href="index.php?controller=dashboard&action=negotiate">Negociação Manual (venda/compra)</a></li>
             </ul>
     </div>
 </main>

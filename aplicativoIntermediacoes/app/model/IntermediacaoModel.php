@@ -45,16 +45,60 @@ class IntermediacaoModel {
             return $this->getAllData();
         }
 
-        // Sanitize columns: ensure they exist in the table
+        // Define mapeamentos entre nomes solicitados e colunas reais do DB
+        $mapping = [
+            'Conta' => 'Codigo_Cliente',
+            'Nome' => 'Nome_Corretora',
+            'Produto' => 'Ativo',
+            'Estrategia' => 'Tipo_Operacao',
+            'Emissor' => 'CNPJ',
+            'Vencimento' => null, // sem coluna direta
+            'Taxa_Compra' => 'Taxa_Liquidacao',
+            'Quantidade' => 'Quantidade',
+            'Valor_Bruto' => 'Valor_Bruto',
+            'IOF' => null, // sem coluna direta
+            'IR' => 'IRRF',
+            'Valor_Liquido' => 'Valor_Liquido',
+            'Data_Compra' => 'Data'
+        ];
+
+        // Aliases solicitados pelo usuário
+        $aliases = [
+            'Taxa_Compra' => 'TX',
+            'Quantidade' => 'QTD',
+            'Valor_Bruto' => 'VB',
+            'Valor_Liquido' => 'VL',
+            'Data_Compra' => 'Data'
+        ];
+
         $available = $this->getAvailableColumns();
-        $safe = array_values(array_intersect($available, $columns));
-        if (empty($safe)) {
+        $selectParts = [];
+
+        foreach ($columns as $req) {
+            $req = trim($req);
+            if ($req === '') continue;
+
+            $actual = $mapping[$req] ?? null;
+            $alias = $aliases[$req] ?? $req;
+
+            if ($actual && in_array($actual, $available)) {
+                // Safe: actual column exists in table
+                $selectParts[] = "{$actual} AS \"{$alias}\"";
+            } else {
+                // Coluna mapeada não existe — retorna NULL para manter posição/nome
+                $selectParts[] = "NULL AS \"{$alias}\"";
+            }
+        }
+
+        if (empty($selectParts)) {
             return [];
         }
 
-        $cols = implode(', ', $safe);
+        $colsSql = implode(', ', $selectParts);
+
         try {
-            $stmt = $this->pdo->prepare("SELECT {$cols} FROM {$this->tableName} LIMIT 100");
+            $sql = "SELECT {$colsSql} FROM {$this->tableName} LIMIT 100";
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {

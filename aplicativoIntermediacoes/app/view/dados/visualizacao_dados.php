@@ -127,7 +127,7 @@
                         <tr style="<?= $rowStyle ?>">
                             <?php 
                             foreach ($row as $key => $cell): 
-                                $formatted_cell = htmlspecialchars($cell);
+                                $formatted_cell = htmlspecialchars($cell ?? '');
                                 $style = 'text-align: left;';
                                 
                                 // Formatação Condicional
