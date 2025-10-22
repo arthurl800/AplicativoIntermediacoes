@@ -5,14 +5,16 @@ require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
 
 class IntermediacaoModel {
     private $pdo;
-    private $tableName = 'INTERMEDIACOES';
+    private $tableName;
 
     public function __construct() {
-        // Inicializa a conexão PDO
+        // Inicializa a conexão PDO e obtém o nome da tabela do config
         try {
             $this->pdo = Database::getInstance()->getConnection();
+            $configFile = dirname(dirname(__DIR__)) . '/config/database.php';
+            $cfg = file_exists($configFile) ? include $configFile : [];
+            $this->tableName = $cfg['TABLE_NAME'] ?? 'INTERMEDIACOES';
         } catch (PDOException $e) {
-            // Em caso de falha na conexão, relança a exceção
             throw new Exception("Falha ao inicializar o modelo de intermediações: " . $e->getMessage());
         }
     }
@@ -23,14 +25,31 @@ class IntermediacaoModel {
      */
     public function getAvailableColumns(): array {
         try {
-            $stmt = $this->pdo->prepare("PRAGMA table_info({$this->tableName})");
+            // MySQL: use SHOW COLUMNS
+            $stmt = $this->pdo->prepare("SHOW COLUMNS FROM {$this->tableName}");
             $stmt->execute();
             $cols = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $names = array_map(fn($c) => $c['name'], $cols);
-            return $names;
+            $names = array_map(fn($c) => $c['Field'] ?? $c['field'] ?? null, $cols);
+            return array_values(array_filter($names));
         } catch (PDOException $e) {
             error_log("Erro ao obter colunas da tabela: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Garante que a coluna imported_at exista na tabela (adiciona se necessário).
+     */
+    private function ensureImportedAtColumnExists(): void {
+        $available = $this->getAvailableColumns();
+        if (in_array('imported_at', $available)) {
+            return;
+        }
+        try {
+            $sql = "ALTER TABLE {$this->tableName} ADD COLUMN imported_at DATETIME NULL";
+            $this->pdo->exec($sql);
+        } catch (PDOException $e) {
+            error_log("Não foi possível adicionar coluna imported_at: " . $e->getMessage());
         }
     }
 
@@ -167,6 +186,64 @@ class IntermediacaoModel {
     }
 
     /**
+     * Retorna uma tabela agregada de investimentos negociáveis por cliente.
+     * Agrupa por: Codigo_Cliente (Conta), Nome_Corretora (Cliente), Ativo (Tipo),
+     * Tipo_Operacao (Indexador), CNPJ (Emissor), Vencimento (se existir),
+     * e Taxa_Plataforma (usa Taxa_Emolumentos ou Taxa_Liquidacao se existir).
+     * Calcula SUM(Quantidade) e SUM(Valor_Bruto) por grupo.
+     * @param int $limit
+     * @return array
+     */
+    public function getNegotiableAggregates(int $limit = 200): array {
+        $available = $this->getAvailableColumns();
+
+        // Colunas mapeadas
+        $conta = in_array('Codigo_Cliente', $available) ? 'Codigo_Cliente' : null;
+        $cliente = in_array('Nome_Corretora', $available) ? 'Nome_Corretora' : null;
+        $tipo = in_array('Ativo', $available) ? 'Ativo' : null;
+        $indexador = in_array('Tipo_Operacao', $available) ? 'Tipo_Operacao' : null;
+        $emissor = in_array('CNPJ', $available) ? 'CNPJ' : null;
+        $vencimento = in_array('Vencimento', $available) ? 'Vencimento' : null;
+        // Taxa_Plataforma: prefere Taxa_Emolumentos, senão Taxa_Liquidacao
+        $taxa_plat = in_array('Taxa_Emolumentos', $available) ? 'Taxa_Emolumentos' : (in_array('Taxa_Liquidacao', $available) ? 'Taxa_Liquidacao' : null);
+
+        $groupParts = [];
+        $selectParts = [];
+
+        if ($conta) { $groupParts[] = $conta; $selectParts[] = "{$conta} AS Conta"; }
+        if ($cliente) { $groupParts[] = $cliente; $selectParts[] = "{$cliente} AS Cliente"; }
+        if ($tipo) { $groupParts[] = $tipo; $selectParts[] = "{$tipo} AS Tipo"; }
+        if ($indexador) { $groupParts[] = $indexador; $selectParts[] = "{$indexador} AS Indexador"; }
+        if ($emissor) { $groupParts[] = $emissor; $selectParts[] = "{$emissor} AS Emissor"; }
+        if ($vencimento) { $groupParts[] = $vencimento; $selectParts[] = "{$vencimento} AS Vencimento"; }
+        if ($taxa_plat) { $groupParts[] = $taxa_plat; $selectParts[] = "{$taxa_plat} AS Taxa_Plataforma"; }
+
+        // Sempre soma quantidade e valor bruto
+        $selectParts[] = "SUM(Quantidade) AS Quantidade";
+        $selectParts[] = "SUM(Valor_Bruto) AS Valor_Bruto";
+
+        if (empty($selectParts) || empty($groupParts)) {
+            return [];
+        }
+
+        $selectSql = implode(', ', $selectParts);
+        $groupSql = implode(', ', $groupParts);
+
+        try {
+            $orderCol = $cliente ?? $conta ?? null;
+            $orderClause = $orderCol ? "ORDER BY {$orderCol} ASC" : "";
+            $sql = "SELECT {$selectSql} FROM {$this->tableName} GROUP BY {$groupSql} {$orderClause} LIMIT :limit";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erro ao buscar agregados negociáveis: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Insere um lote de registros no banco de dados.
      * (Mantido para a funcionalidade de upload)
      * @param array $records Array de arrays de dados.
@@ -175,17 +252,23 @@ class IntermediacaoModel {
     public function insertBatch(array $records): array {
         $insertedCount = 0;
         $errors = [];
-        $this->pdo->beginTransaction();
 
-        // Lista das 23 colunas esperadas (ajustar conforme sua estrutura de DB)
+        // Lista das colunas esperadas para a nova estrutura
         $columns = [
-            'Data', 'Mercado', 'Sub_Mercado', 'Tipo_Operacao', 'Ativo', 
-            'CNPJ', 'Quantidade', 'Preco_Unitario', 'Valor_Bruto', 
-            'Taxa_Liquidacao', 'Taxa_Emolumentos', 'ISS', 'IRRF', 
-            'Outras_Despesas', 'Valor_Liquido', 'Corretagem', 
-            'Nome_Corretora', 'Codigo_Cliente', 'Descricao_Ativo',
-            'Custo_Operacional', 'Custo_Financ', 'Ajuste_Op', 'Total_Operacao'
+            'Conta', 'Nome', 'Mercado', 'Sub_Mercado', 'Ativo',
+            'Produto', 'CNPJ', 'Emissor', 'Data_Compra', 'Taxa_Compra',
+            'Taxa_Emissao', 'Vencimento', 'Quantidade', 'Valor_Bruto',
+            'IR', 'IOF', 'Valor_Liquido', 'Estrategia', 'Escritorio',
+            'Data_Registro', 'Data_Cotizacao_Prev', 'Tipo_Plano', 
+            'ID_Registro'
         ];
+
+        // Garante que a tabela tenha a coluna imported_at
+        $this->ensureImportedAtColumnExists();
+        $available = $this->getAvailableColumns();
+        if (in_array('imported_at', $available)) {
+            $columns[] = 'imported_at';
+        }
         
         // Cria a string de placeholders para o INSERT (ex: ?, ?, ?, ...)
         $placeholders = implode(', ', array_fill(0, count($columns), '?'));
@@ -196,31 +279,40 @@ class IntermediacaoModel {
         try {
             $stmt = $this->pdo->prepare($sql);
 
-            foreach ($records as $index => $row) {
-                // Assumindo que $row já está na ordem correta das colunas
-                if (count($row) === count($columns)) {
-                    // Prepara os valores para o INSERT
+            try {
+                $this->pdo->beginTransaction();
+                
+                foreach ($records as $index => $row) {
                     $values = [];
                     foreach ($row as $value) {
-                        // Converte valores vazios/nulos para null do SQL
                         $values[] = ($value === '' || $value === null) ? null : $value;
                     }
 
-                    if (!$stmt->execute($values)) {
-                        $errors[] = "Erro ao inserir linha " . ($index + 1);
-                    } else {
-                        $insertedCount++;
+                    if (in_array('Data_Importacao', $available)) {
+                        $values[] = date('Y-m-d H:i:s');
                     }
-                } else {
-                    $errors[] = "Linha " . ($index + 1) . ": número incorreto de colunas (" . count($row) . " de " . count($columns) . " esperadas).";
+
+                    if (count($values) !== count($columns)) {
+                        $errors[] = "Linha " . ($index + 1) . ": número incorreto de colunas (" . count($values) . " de " . count($columns) . " esperadas).";
+                        continue;
+                    }
+
+                    if (!$stmt->execute($values)) {
+                        throw new PDOException("Erro ao inserir linha " . ($index + 1) . ": " . implode(' | ', $stmt->errorInfo()));
+                    }
+                    $insertedCount++;
                 }
+
+                $this->pdo->commit();
+            } catch (PDOException $e) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+                $errors[] = "Erro na transação: " . $e->getMessage();
+
             }
-
-            $this->pdo->commit();
-
         } catch (PDOException $e) {
-            $this->pdo->rollBack();
-            $errors[] = "Erro fatal de transação: " . $e->getMessage();
+            $errors[] = "Erro na preparação do SQL: " . $e->getMessage();
         }
 
         return ['inserted' => $insertedCount, 'errors' => $errors];

@@ -11,17 +11,16 @@
             <p>Como administrador, você tem acesso às seguintes funções:</p>
             <ul>
                 <li><a href="index.php?controller=admin&action=users">Gerenciar Usuários</a></li>
-                <li><a href="index.php?controller=upload&action=index">Importar Novas Intermediações</a></li>
             </ul>
         </div>
     <?php endif; ?>
 
-        <div style="border: 1px solid #007bff; padding: 15px; margin-top: 20px; background-color: #e4ff8a;">
-            <h3>Funções de Análise de Dados</h3>
-            <p>Você pode começar a trabalhar na próxima etapa do seu projeto.</p>
-            <ul>
-                <li><a href="index.php?controller=dados&action=visualizar">Visualizar os Dados de Intermediações</a></li>
-                <li><a href="index.php?controller=dashboard&action=negotiate">Negociação Manual (venda/compra)</a></li>
-            </ul>
+    <div style="border: 1px solid #007bff; padding: 15px; margin-top: 20px; background-color: #e4ff8a;">
+        <h3>Funções de Análise de Dados</h3>
+        <p>Gerenciar os arquivos importados</p>
+        <ul>
+            <li><a href="index.php?controller=upload&action=index">Importar e Visualizar os Dados</a></li>
+            <li><a href="index.php?controller=dados&action=visualizar&only_negotiations=1#negociacoes">Negociações</a></li>
+        </ul>
     </div>
 </main>

@@ -133,8 +133,9 @@ $user = $authManager->getCurrentUser();
             <?php if ($isLoggedIn): ?>
                 
                 <!-- Links visíveis apenas quando logado -->
-                <a href="index.php?controller=dashboard&action=index">Dashboard</a>
-                <a href="index.php?controller=data&action=index">Dados Importados</a>
+                <a href="index.php?controller=dashboard&action=index" style="background-color: #088b00;">Painel</a>
+                <a href="index.php?controller=upload&action=index">Importar Dados</a>
+                <a href="index.php?controller=dados&action=visualizar&only_negotiations=1#negociacoes">Negociações</a>
                 
                 <?php if ($user && $user['role'] === 'admin'): ?>
                     <a href="index.php?controller=admin&action=users" style="background-color: #007bff;">Gerenciar Usuários</a>

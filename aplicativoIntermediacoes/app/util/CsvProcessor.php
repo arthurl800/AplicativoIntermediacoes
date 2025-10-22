@@ -23,19 +23,24 @@ class CsvProcessor implements IFileProcessor {
             throw new Exception("Erro ao abrir o arquivo CSV.");
         }
 
-        $data = [];
-        
-        // Pula a primeira linha (cabeçalho)
-        fgetcsv($handle, 1000, $this->delimiter); 
-        
+        $header = null;
+        $rows = [];
+
+        // Lê a primeira linha como cabeçalho, se possível
+        $first = fgetcsv($handle, 1000, $this->delimiter);
+        if ($first !== false) {
+            $header = $first;
+        }
+
         while (($row = fgetcsv($handle, 1000, $this->delimiter)) !== FALSE) {
             // Só processa se o número de colunas estiver correto
             if (count($row) === $this->expectedColumns) {
-                $data[] = $row;
-            } 
+                $rows[] = $row;
+            }
         }
-        
+
         fclose($handle);
-        return $data;
+
+        return ['header' => $header, 'rows' => $rows];
     }
 }

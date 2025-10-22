@@ -1,90 +1,113 @@
 <!-- app/view/data/visualizacao_dados.php -->
 <main>
-    <h2 style="margin-bottom: 20px;">Análise de Dados de Intermediações</h2>
-    
-    <!-- Painel de Sumarização e Ações -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-        <div style="background-color: #f0f8ff; border-left: 5px solid #007bff; padding: 15px; border-radius: 4px; flex-grow: 1; margin-right: 10px;">
-            <p><strong>Total de Registros Exibidos:</strong> <?= number_format(count($dados), 0, ',', '.') ?></p>
-            <p style="font-size: 0.9em; margin-top: 5px;">* Exibindo registros filtrados ou limitados a 100.</p>
-        </div>
-        
-        <a href="index.php?controller=dados&action=dashboard"
-           style="background-color: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; white-space: nowrap;">
-            Ir para Dashboard (KPIs)
-        </a>
-    </div>
+    <h2 style="margin-bottom: 20px;">Painel do Usuário</h2>
 
-    <!-- Botão rápido para visualizar colunas específicas -->
-    <div style="margin-bottom: 15px;">
-        <?php if (!empty($availableColumns)): ?>
-            <div style="margin-bottom:8px; font-size:0.95em; color:#333;">Colunas disponíveis: <strong><?= htmlspecialchars(implode(', ', $availableColumns)) ?></strong></div>
+    <?php
+    // Oculta preview quando explicitamente solicitado via GET (mais confiável que âncora)
+    $showPreview = true;
+    if (!empty($_GET['only_negotiations']) || (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '#negociacoes') !== false)) {
+        $showPreview = false;
+    }
+    if ($showPreview):
+    ?>
+           
+    <?php endif; ?>
 
-            <!-- Exemplo: link que busca apenas as colunas solicitadas pelo usuário -->
-            <?php
-                // Colunas de exemplo pedidas pelo usuário
-                $sampleCols = ['Conta','Nome','Produto','Estrategia','Emissor','Vencimento','Taxa_Compra','Quantidade','Valor_Bruto','IOF','IR','Valor_Liquido','Data_Compra'];
-                // Intersect com as colunas disponíveis para evitar SQL injection
-                $validSample = array_values(array_intersect($availableColumns, $sampleCols));
-                $colsParam = htmlspecialchars(implode(',', $validSample));
-            ?>
-            <?php if (!empty($validSample)): ?>
-                <a href="index.php?controller=dados&action=visualizar&columns=<?= $colsParam ?>" style="background:#007bff;color:white;padding:8px 12px;border-radius:4px;text-decoration:none;font-weight:bold;">Ver colunas selecionadas (exemplo)</a>
-            <?php else: ?>
-                <div style="color:#856404;background:#fff3cd;padding:10px;border-radius:4px;">Nenhuma das colunas de exemplo está presente na tabela.</div>
-            <?php endif; ?>
-        <?php endif; ?>
-    </div>
-
-    <!-- Formulário de Filtros -->
-    <form method="GET" action="index.php" style="background-color: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <input type="hidden" name="controller" value="dados">
-        <input type="hidden" name="action" value="visualizar">
-        
-        <h3 style="margin-top: 0; font-size: 1.2em;">Filtros</h3>
-        
-        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-            
-            <!-- Filtro por Mercado -->
-            <div style="flex: 1; min-width: 180px;">
-                <label for="filtro_mercado" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">Mercado:</label>
-                <input type="text" id="filtro_mercado" name="mercado" 
-                       value="<?= htmlspecialchars($_GET['mercado'] ?? '') ?>"
-                       placeholder="Ex: Renda Fixa"
-                       style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+    <?php if (!empty($aggregates)): ?>
+        <section id="negociacoes" style="margin-top:20px;">
+            <h3>Investimentos Negociáveis por Cliente</h3>
+            <div style="overflow-x:auto; background:#fff; padding:10px; border-radius:6px; border:1px solid #e6eef8;">
+                <?php
+                // Colunas e aliases solicitados
+                $userCols = [
+                    'Conta' => 'Conta',
+                    'Nome' => 'Cliente',
+                    'Produto' => 'Tipo',
+                    'Estrategia' => 'Indexador',
+                    'Emissor' => 'Emissor',
+                    'Vencimento' => 'Vencimento',
+                    'Taxa_Plataforma' => 'Taxa_Plataforma',
+                    'Quantidade' => 'Quantidade',
+                    'Valor_Bruto' => 'Valor_Bruto',
+                    'IOF' => 'IOF',
+                    'IR' => 'IR',
+                    'Valor_Liquido' => 'Valor_Liquido',
+                    'Data_Compra' => 'Data_Compra'
+                ];
+                ?>
+                <table style="width:100%; border-collapse:collapse; min-width:1000px;">
+                    <thead>
+                        <tr style="background:#007bff;color:#fff; text-transform:uppercase; font-size:0.85em;">
+                            <?php foreach ($userCols as $col => $alias): ?>
+                                <th style="padding:8px;border:1px solid #0056b3; text-align:left;"><?= htmlspecialchars($alias) ?></th>
+                            <?php endforeach; ?>
+                            <th style="padding:8px;border:1px solid #0056b3;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($aggregates as $agg): ?>
+                            <tr>
+                                <?php foreach ($userCols as $col => $alias): ?>
+                                    <?php
+                                    $cell = $agg[$col] ?? '';
+                                    // Formata campos conhecidos
+                                    if ($col === 'Quantidade') {
+                                        $cell = number_format((int)$cell, 0, ',', '.');
+                                    } elseif ($col === 'Valor_Bruto' || $col === 'Valor_Liquido' || $col === 'IOF' || $col === 'IR') {
+                                        $cell = 'R$ ' . number_format((float)$cell, 2, ',', '.');
+                                    } elseif ($col === 'Taxa_Plataforma') {
+                                        $num = (float)$cell;
+                                        if ($num > 0 && $num < 1) {
+                                            $cell = number_format($num * 100, 4, ',', '.') . ' %';
+                                        } else {
+                                            $cell = number_format($num, 4, ',', '.') . ' %';
+                                        }
+                                    } elseif ($col === 'Vencimento' || $col === 'Data_Compra') {
+                                        if ($cell) {
+                                            $dt = DateTime::createFromFormat('Y-m-d', $cell) ?: DateTime::createFromFormat('d/m/Y', $cell);
+                                            $cell = $dt ? $dt->format('d/m/Y') : $cell;
+                                        }
+                                    } else {
+                                        $cell = htmlspecialchars($cell ?? '');
+                                    }
+                                    ?>
+                                    <td style="padding:8px;border:1px solid #eee;"><?= $cell ?></td>
+                                <?php endforeach; ?>
+                                <td style="padding:8px;border:1px solid #eee; text-align:center;">
+                                    <?php
+                                    // Monta parâmetros curtos para o formulário de negociação
+                                    $params = http_build_query([
+                                        'conta' => $agg['Conta'] ?? '',
+                                        'nome' => $agg['Nome'] ?? '',
+                                        'produto' => $agg['Produto'] ?? '',
+                                        'estrategia' => $agg['Estrategia'] ?? '',
+                                        'emissor' => $agg['Emissor'] ?? '',
+                                        'vencimento' => $agg['Vencimento'] ?? '',
+                                        'taxa_emissao' => $agg['Taxa_Emissao'] ?? '',
+                                        'taxa_plataforma' => $agg['Taxa_Plataforma'] ?? '',
+                                        'quantidade' => $agg['Quantidade'] ?? '',
+                                        'valor_bruto' => $agg['Valor_Bruto'] ?? '',
+                                        'iof' => $agg['IOF'] ?? '',
+                                        'ir' => $agg['IR'] ?? '',
+                                        'valor_liquido' => $agg['Valor_Liquido'] ?? '',
+                                        'data_compra' => $agg['Data_Compra'] ?? ''
+                                    ]);
+                                    ?>
+                                    <a href="index.php?controller=dados&action=negotiate_form&<?= $params ?>" style="display:inline-block;padding:6px 10px;background:#17a2b8;color:white;border-radius:4px;text-decoration:none;font-weight:bold;">Negociar</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
-
-            <!-- Filtro por Sub-Mercado -->
-            <div style="flex: 1; min-width: 180px;">
-                <label for="filtro_submercado" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">Sub-Mercado:</label>
-                <input type="text" id="filtro_submercado" name="sub_mercado" 
-                       value="<?= htmlspecialchars($_GET['sub_mercado'] ?? '') ?>"
-                       placeholder="Ex: Privado"
-                       style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-            </div>
-
-            <!-- Filtro por Ativo -->
-            <div style="flex: 1; min-width: 180px;">
-                <label for="filtro_ativo" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">Ativo:</label>
-                <input type="text" id="filtro_ativo" name="ativo" 
-                       value="<?= htmlspecialchars($_GET['ativo'] ?? '') ?>"
-                       placeholder="Ex: DEBÊNTURE"
-                       style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-            </div>
-
-            <!-- Botões de Ação -->
-            <div style="display: flex; align-items: flex-end; gap: 10px;">
-                <button type="submit" 
-                        style="background-color: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                    Aplicar Filtros
-                </button>
-                <a href="index.php?controller=dados&action=visualizar" 
-                   style="background-color: #6c757d; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-                    Limpar
-                </a>
-            </div>
-        </div>
-    </form>
+        </section>
+    <?php endif; ?>
+    <?php if (empty($aggregates)): ?>
+        <section style="margin-top:20px; padding:12px; background:#fff3cd; border-radius:6px; border:1px solid #ffeeba;">
+            <strong>Nenhum investimento negociável encontrado.</strong>
+            <p style="margin:6px 0 0 0;">Importe dados ou verifique se os campos esperados (Conta, Cliente, Tipo, Indexador, Emissor, Quantidade, Valor_Bruto) existem na tabela.</p>
+        </section>
+    <?php endif; ?>
 
     <?php if (empty($dados)): ?>
         <div style="padding: 20px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;">
