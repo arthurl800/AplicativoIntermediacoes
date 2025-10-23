@@ -16,10 +16,10 @@
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
     
-    // Referência ao formulário e botão
+    // Referências DOM (disponíveis logo na carga do script)
     const negotiateForm = document.getElementById('negotiate-form');
-    let submitButton;
-    
+    let submitButton; // Será definido em initializeFirebase
+
     // --- Funções de Formatação e Unformatação ---
     
     // Formata um valor numérico para moeda brasileira (R$) (espera valor desescalado, ex: 10000.50)
@@ -31,7 +31,8 @@
     // Formata um valor numérico para percentual (espera valor em base 100, ex: 5 para 5%)
     function formatRateDisplay(value) {
         const scaledValue = parseFloat(value) || 0;
-        return scaledValue.toFixed(2).replace('.', ',') + ' %';
+        // Limita a 2 casas decimais para o display (pode ajustar)
+        return scaledValue.toFixed(2).replace('.', ',') + ' %'; 
     }
 
     // Remove a formatação de moeda e converte para float (o valor puro, desescalado)
@@ -61,6 +62,7 @@
         const vBrutoImportadoDesescalado = vBrutoImportadoRaw / 100;
         
         // Vendedor Inputs (valores desescalados em R$)
+        // Aqui é onde o valor do input é lido. Se for R$ 10.000,00, será lido como 10000.00
         const taxaSaida = unformatRate(document.getElementById('taxa_saida').value);
         const vBrutoSaida = unformatCurrency(document.getElementById('valor_bruto_saida').value);
         const vLiquidoSaida = unformatCurrency(document.getElementById('valor_liquido_saida').value);
@@ -89,7 +91,7 @@
         // Rentabilidade = Ganho / Valor da Plataforma (se vPlataforma > 0)
         let rentabilidadeSaida = 0;
         if (vPlataforma > 0) {
-            rentabilidadeSaida = (ganho / vPlataforma) * 100; // Resultado em %
+            rentabilidadeSaida = (ganho / vPlataforma) * 100; // Resultado em % (base 100)
         }
         document.getElementById('rentabilidade_saida').value = formatRateDisplay(rentabilidadeSaida);
 
@@ -114,7 +116,7 @@
         // ROA = Corretagem / Valor Bruto Saída (se vBrutoSaida > 0)
         let roaAssessor = 0;
         if (vBrutoSaida > 0) {
-            roaAssessor = (corretagemAssessor / vBrutoSaida) * 100; // Resultado em %
+            roaAssessor = (corretagemAssessor / vBrutoSaida) * 100; // Resultado em % (base 100)
         }
         document.getElementById('roa_assessor').value = formatRateDisplay(roaAssessor);
     };
@@ -124,9 +126,12 @@
     async function handleFormSubmit(event) {
         event.preventDefault();
         
-        // Garante que o botão e o usuário estão prontos
-        if (!submitButton || !userId) {
-            alertModal('Aguarde', 'Aguarde o carregamento completo do sistema de autenticação.', 'info');
+        console.log("Submit button clicked. Checking auth state...");
+        
+        // CRÍTICO: Verifica se o Firebase está pronto
+        if (!submitButton || !userId || !db) {
+            console.error("ERRO: Firebase ou UserID não definidos. Abortando submissão.");
+            alertModal('Aguarde', 'Aguarde o carregamento completo do sistema de autenticação e banco de dados.', 'info');
             return;
         }
         
@@ -145,19 +150,21 @@
             });
             
             // Adicionar campos calculados e garantir que são números (desescalados)
-            // OBS: O Firestore deve receber valores desescalados em R$ para os campos 'data.campo_calculado'
+            // OBS: O Firestore deve receber valores desescalados em R$ ou em % (base 100)
             data.preco_unitario_saida = unformatCurrency(document.getElementById('preco_unitario_saida').value);
             data.ganho_saida = unformatCurrency(document.getElementById('ganho_saida').value);
-            data.rentabilidade_saida = unformatRate(document.getElementById('rentabilidade_saida').value); // Já está em % (base 100)
+            data.rentabilidade_saida = unformatRate(document.getElementById('rentabilidade_saida').value); 
             data.preco_unitario_entrada = unformatCurrency(document.getElementById('preco_unitario_entrada').value);
             data.corretagem_assessor = unformatCurrency(document.getElementById('corretagem_assessor').value);
-            data.roa_assessor = unformatRate(document.getElementById('roa_assessor').value); // Já está em % (base 100)
+            data.roa_assessor = unformatRate(document.getElementById('roa_assessor').value); 
             
             // Adicionar metadados da transação
             data.transacao_id = crypto.randomUUID();
             data.data_transacao = serverTimestamp();
             data.usuario_id = userId;
             
+            console.log("Attempting to save data to Firestore:", data);
+
             // Salvar no Firestore
             const collectionPath = `artifacts/${appId}/users/${userId}/negociacoes`;
             await addDoc(collection(db, collectionPath), data);
@@ -165,11 +172,14 @@
             alertModal('Sucesso!', 'A negociação foi registrada com sucesso no Firestore.', 'success');
             
         } catch (error) {
-            console.error("Erro ao processar e salvar negociação:", error);
+            console.error("ERRO FATAL: Falha ao processar e salvar negociação:", error);
             alertModal('Erro!', `Falha ao salvar a negociação. Detalhes: ${error.message}`, 'error');
         } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = 'Processar Negociação';
+            // Garante que o botão seja reativado após o processamento (sucesso ou falha)
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Processar Negociação';
+            }
         }
     }
 
@@ -179,6 +189,8 @@
             const app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
+            
+            // Define o botão de submissão o mais cedo possível
             submitButton = document.querySelector('button[type="submit"]');
 
             if (initialAuthToken) {
@@ -186,23 +198,26 @@
             } else {
                 await signInAnonymously(auth);
             }
-
+            
+            // Monitora o estado de autenticação
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     userId = user.uid;
                     console.log("Firebase Auth OK. User ID:", userId);
                     
-                    // 1. ANEXAR LISTENER DE SUBMISSÃO (AGORA PRONTO)
+                    // CRÍTICO: ANEXAR LISTENER DE SUBMISSÃO APENAS QUANDO O USERID ESTÁ PRONTO
                     if (negotiateForm) {
+                       negotiateForm.removeEventListener('submit', handleFormSubmit); // Remove duplicados
                        negotiateForm.addEventListener('submit', handleFormSubmit);
+                       console.log("Form submit listener attached successfully.");
                     }
                     
-                    // 2. EXECUTAR CÁLCULO INICIAL (GARANTINDO QUE OS CAMPOS READ-ONLY SEJAM PREENCHIDOS)
+                    // EXECUTAR CÁLCULO INICIAL
                     window.updateCalculations();
                     
                 } else {
                     console.error("Autenticação falhou. Usuário não logado.");
-                    // O botão de submit ficará inativo ou o usuário será direcionado, dependendo da lógica do app.
+                    if (submitButton) submitButton.disabled = true;
                 }
             });
         } catch (e) {
@@ -369,11 +384,11 @@
         <h3 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Comprador (Entrada)</h3>
         <div class="grid md:grid-cols-4 gap-4 mb-6">
             <div>
-                <label for="conta_entrada" class="block text-sm font-medium text-gray-700 mb-1">Conta Comprador:</label>
+                <label for="conta_entrada" class="block text-sm font-medium text-gray-700 mb-1" style="background-color: #ccf3caff;">Conta Comprador:</label>
                 <input type="text" id="conta_entrada" name="conta_entrada" placeholder="123456" class="input-field" required>
             </div>
             <div>
-                <label for="nome_entrada" class="block text-sm font-medium text-gray-700 mb-1">Nome Comprador:</label>
+                <label for="nome_entrada" class="block text-sm font-medium text-gray-700 mb-1" style="background-color: #ccf3caff;">Nome Comprador:</label>
                 <input type="text" id="nome_entrada" name="nome_entrada" placeholder="João da Silva" class="input-field" required>
             </div>
             <div>
