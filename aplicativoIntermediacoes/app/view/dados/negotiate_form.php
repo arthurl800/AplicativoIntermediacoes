@@ -15,79 +15,60 @@
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-    // Inicialização do Firebase e Autenticação
-    window.initializeFirebase = async function() {
-        try {
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            if (initialAuthToken) {
-                await signInWithCustomToken(auth, initialAuthToken);
-            } else {
-                await signInAnonymously(auth);
-            }
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    userId = user.uid;
-                    console.log("Firebase Auth OK. User ID:", userId);
-                    document.getElementById('negotiate-form').addEventListener('submit', handleFormSubmit);
-                } else {
-                    console.error("Autenticação falhou.");
-                    // Implementar modal de erro se autenticação falhar
-                }
-            });
-        } catch (e) {
-            console.error("Erro na inicialização do Firebase:", e);
-        }
-    };
-
-    // --- Funções de Formatação e Unformatação (incluindo /100) ---
-
-    // Formata um valor numérico para moeda brasileira (R$) com divisão por 100
+    
+    // Referência ao formulário e botão
+    const negotiateForm = document.getElementById('negotiate-form');
+    let submitButton;
+    
+    // --- Funções de Formatação e Unformatação ---
+    
+    // Formata um valor numérico para moeda brasileira (R$) (espera valor desescalado, ex: 10000.50)
     function formatCurrency(value) {
-        const scaledValue = (parseFloat(value) || 0) / 100;
+        const scaledValue = parseFloat(value) || 0;
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(scaledValue);
     }
-
-    // Formata um valor numérico para percentual (após divisão por 100)
-    function formatRate(value) {
-        const scaledValue = (parseFloat(value) || 0) / 100;
-        return (scaledValue).toFixed(4).replace('.', ',') + ' %';
+    
+    // Formata um valor numérico para percentual (espera valor em base 100, ex: 5 para 5%)
+    function formatRateDisplay(value) {
+        const scaledValue = parseFloat(value) || 0;
+        return scaledValue.toFixed(2).replace('.', ',') + ' %';
     }
 
-    // Remove a formatação de moeda e converte para float
+    // Remove a formatação de moeda e converte para float (o valor puro, desescalado)
     function unformatCurrency(displayValue) {
         if (!displayValue) return 0;
-        // Remove R$, pontos e substitui vírgula por ponto
+        // Remove R$, espaços, pontos de milhar e substitui vírgula decimal por ponto
         const cleanValue = displayValue.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
         return parseFloat(cleanValue) || 0;
     }
     
-    // Remove o percentual e converte para float
+    // Remove o percentual e converte para float (o valor em base 100)
     function unformatRate(displayValue) {
         if (!displayValue) return 0;
-        return parseFloat(displayValue.replace('%', '').replace(',', '.')) || 0;
+        // Remove %, espaços e substitui vírgula por ponto
+        return parseFloat(displayValue.replace('%', '').replace(/\s/g, '').replace(',', '.')) || 0;
     }
 
     // --- Lógica de Cálculo Dinâmico ---
-
+    
     window.updateCalculations = function() {
+        if (!negotiateForm) return;
+
         // Inputs Principais
         const qNegociada = parseFloat(document.getElementById('quantidade_negociada').value) || 0;
-        const vBrutoImportado = parseFloat(document.getElementById('valor_bruto_importado').value) || 0; // Valor RAW (x100)
+        // vBrutoImportado é o valor RAW (x100) vindo do PHP. Precisa ser desescalado para o cálculo.
+        const vBrutoImportadoRaw = parseFloat(document.getElementById('valor_bruto_importado').value) || 0; 
+        const vBrutoImportadoDesescalado = vBrutoImportadoRaw / 100;
         
-        // Vendedor Inputs
+        // Vendedor Inputs (valores desescalados em R$)
         const taxaSaida = unformatRate(document.getElementById('taxa_saida').value);
         const vBrutoSaida = unformatCurrency(document.getElementById('valor_bruto_saida').value);
         const vLiquidoSaida = unformatCurrency(document.getElementById('valor_liquido_saida').value);
 
-        // Comprador Inputs
+        // Comprador Inputs (valores desescalados em R$)
         const vBrutoEntrada = unformatCurrency(document.getElementById('valor_bruto_entrada').value);
 
-        // Assessor Input
+        // Assessor Input (valor desescalado em R$)
         const vPlataforma = unformatCurrency(document.getElementById('valor_plataforma').value);
 
         // --- CÁLCULOS DO VENDEDOR ---
@@ -97,21 +78,20 @@
         if (qNegociada > 0) {
             precoUnitarioSaida = vLiquidoSaida / qNegociada;
         }
-        document.getElementById('preco_unitario_saida').value = formatCurrency(precoUnitarioSaida * 100);
+        document.getElementById('preco_unitario_saida').value = formatCurrency(precoUnitarioSaida);
 
-        // Ganho = Valor Líquido Saída - Valor Bruto Importado (corrigido)
-        // OBS: Aqui usamos vBrutoImportado / 100 para desescalar o valor do banco
-        const ganho = vLiquidoSaida - (vBrutoImportado / 100);
-        document.getElementById('ganho_saida').value = formatCurrency(ganho * 100);
+        // Ganho = Valor Líquido Saída - Valor Bruto Importado (desescalado)
+        const ganho = vLiquidoSaida - vBrutoImportadoDesescalado;
+        document.getElementById('ganho_saida').value = formatCurrency(ganho);
         document.getElementById('ganho_saida').classList.toggle('text-green-600', ganho >= 0);
         document.getElementById('ganho_saida').classList.toggle('text-red-600', ganho < 0);
 
         // Rentabilidade = Ganho / Valor da Plataforma (se vPlataforma > 0)
         let rentabilidadeSaida = 0;
         if (vPlataforma > 0) {
-            rentabilidadeSaida = ganho / vPlataforma;
+            rentabilidadeSaida = (ganho / vPlataforma) * 100; // Resultado em %
         }
-        document.getElementById('rentabilidade_saida').value = (rentabilidadeSaida * 100).toFixed(2).replace('.', ',') + ' %';
+        document.getElementById('rentabilidade_saida').value = formatRateDisplay(rentabilidadeSaida);
 
 
         // --- CÁLCULOS DO COMPRADOR ---
@@ -121,48 +101,57 @@
         if (qNegociada > 0) {
             precoUnitarioEntrada = vBrutoEntrada / qNegociada;
         }
-        document.getElementById('preco_unitario_entrada').value = formatCurrency(precoUnitarioEntrada * 100);
+        document.getElementById('preco_unitario_entrada').value = formatCurrency(precoUnitarioEntrada);
 
         // --- CÁLCULOS DO ASSESSOR ---
 
         // Corretagem = Valor Bruto Entrada - Valor Bruto Saída
         const corretagemAssessor = vBrutoEntrada - vBrutoSaida;
-        document.getElementById('corretagem_assessor').value = formatCurrency(corretagemAssessor * 100);
+        document.getElementById('corretagem_assessor').value = formatCurrency(corretagemAssessor);
         document.getElementById('corretagem_assessor').classList.toggle('text-green-600', corretagemAssessor >= 0);
         document.getElementById('corretagem_assessor').classList.toggle('text-red-600', corretagemAssessor < 0);
 
         // ROA = Corretagem / Valor Bruto Saída (se vBrutoSaida > 0)
         let roaAssessor = 0;
         if (vBrutoSaida > 0) {
-            roaAssessor = corretagemAssessor / vBrutoSaida;
+            roaAssessor = (corretagemAssessor / vBrutoSaida) * 100; // Resultado em %
         }
-        document.getElementById('roa_assessor').value = (roaAssessor * 100).toFixed(2).replace('.', ',') + ' %';
+        document.getElementById('roa_assessor').value = formatRateDisplay(roaAssessor);
     };
 
     // --- Submissão para o Firestore ---
 
     async function handleFormSubmit(event) {
         event.preventDefault();
-        const button = document.querySelector('button[type="submit"]');
-        button.disabled = true;
-        button.textContent = 'Processando...';
+        
+        // Garante que o botão e o usuário estão prontos
+        if (!submitButton || !userId) {
+            alertModal('Aguarde', 'Aguarde o carregamento completo do sistema de autenticação.', 'info');
+            return;
+        }
+        
+        submitButton.disabled = true;
+        submitButton.textContent = 'Processando...';
 
         try {
-            // Obter todos os campos do formulário
+            // Re-executa os cálculos para garantir que os valores a serem salvos estão atualizados
+            window.updateCalculations(); 
+            
+            // Obter todos os campos do formulário (incluindo inputs hidden)
             const formData = new FormData(event.target);
             const data = {};
             formData.forEach((value, key) => {
                 data[key] = value;
             });
             
-            // Adicionar campos calculados (precisam ser recalculados para garantir consistência)
-            window.updateCalculations(); 
+            // Adicionar campos calculados e garantir que são números (desescalados)
+            // OBS: O Firestore deve receber valores desescalados em R$ para os campos 'data.campo_calculado'
             data.preco_unitario_saida = unformatCurrency(document.getElementById('preco_unitario_saida').value);
             data.ganho_saida = unformatCurrency(document.getElementById('ganho_saida').value);
-            data.rentabilidade_saida = unformatRate(document.getElementById('rentabilidade_saida').value);
+            data.rentabilidade_saida = unformatRate(document.getElementById('rentabilidade_saida').value); // Já está em % (base 100)
             data.preco_unitario_entrada = unformatCurrency(document.getElementById('preco_unitario_entrada').value);
             data.corretagem_assessor = unformatCurrency(document.getElementById('corretagem_assessor').value);
-            data.roa_assessor = unformatRate(document.getElementById('roa_assessor').value);
+            data.roa_assessor = unformatRate(document.getElementById('roa_assessor').value); // Já está em % (base 100)
             
             // Adicionar metadados da transação
             data.transacao_id = crypto.randomUUID();
@@ -175,17 +164,51 @@
             
             alertModal('Sucesso!', 'A negociação foi registrada com sucesso no Firestore.', 'success');
             
-            // Redirecionar após sucesso (opcional, aqui apenas mostra o sucesso)
-            // setTimeout(() => window.location.href = 'index.php?controller=dados&action=visualizar', 2000);
-
         } catch (error) {
             console.error("Erro ao processar e salvar negociação:", error);
             alertModal('Erro!', `Falha ao salvar a negociação. Detalhes: ${error.message}`, 'error');
         } finally {
-            button.disabled = false;
-            button.textContent = 'Processar Negociação';
+            submitButton.disabled = false;
+            submitButton.textContent = 'Processar Negociação';
         }
     }
+
+    // Inicialização do Firebase e Autenticação
+    window.initializeFirebase = async function() {
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            submitButton = document.querySelector('button[type="submit"]');
+
+            if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken);
+            } else {
+                await signInAnonymously(auth);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("Firebase Auth OK. User ID:", userId);
+                    
+                    // 1. ANEXAR LISTENER DE SUBMISSÃO (AGORA PRONTO)
+                    if (negotiateForm) {
+                       negotiateForm.addEventListener('submit', handleFormSubmit);
+                    }
+                    
+                    // 2. EXECUTAR CÁLCULO INICIAL (GARANTINDO QUE OS CAMPOS READ-ONLY SEJAM PREENCHIDOS)
+                    window.updateCalculations();
+                    
+                } else {
+                    console.error("Autenticação falhou. Usuário não logado.");
+                    // O botão de submit ficará inativo ou o usuário será direcionado, dependendo da lógica do app.
+                }
+            });
+        } catch (e) {
+            console.error("Erro na inicialização do Firebase:", e);
+        }
+    };
     
     // Simples Modal de Alerta (substituto do alert())
     function alertModal(title, message, type) {
@@ -213,14 +236,14 @@
     // Inicializa o Firebase ao carregar a página
     window.onload = initializeFirebase;
     
-    // Adiciona listener para recalcular ao alterar qualquer campo relevante
+    // Adiciona listener de input no documento para recalcular ao alterar qualquer campo relevante
     document.addEventListener('input', function(e) {
-        const relevantFields = ['quantidade_negociada', 'taxa_saida', 'valor_bruto_saida', 'valor_liquido_saida', 'taxa_entrada', 'valor_bruto_entrada', 'valor_plataforma'];
-        if (relevantFields.includes(e.target.id)) {
+        // Verifica se o evento veio de um dos campos relevantes
+        const relevantIds = ['quantidade_negociada', 'taxa_saida', 'valor_bruto_saida', 'valor_liquido_saida', 'taxa_entrada', 'valor_bruto_entrada', 'valor_plataforma'];
+        if (relevantIds.includes(e.target.id)) {
             window.updateCalculations();
         }
     });
-});
 </script>
 
 <!-- Estilização Principal -->
@@ -358,7 +381,7 @@
                 <input type="text" id="taxa_entrada" name="taxa_entrada" placeholder="1.00" class="input-field">
             </div>
             <div>
-                <label for="valor_bruto_entrada" class="block text-sm font-medium text-gray-700 mb-1">Valor Bruto de Entrada (R$):</label>
+                <label for="valor_bruto_entrada" class="block text-sm font-medium text-gray-700 mb-1">Valor Bruto Entrada (R$):</label>
                 <input type="text" id="valor_bruto_entrada" name="valor_bruto_entrada" placeholder="10.100,00" class="input-field" required>
             </div>
         </div>
