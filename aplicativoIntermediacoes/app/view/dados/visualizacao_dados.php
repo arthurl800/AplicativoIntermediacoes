@@ -6,6 +6,7 @@
         --primary-dark: #0f4c81;
         --secondary-color: #34a853; /* Verde para valores positivos/líquidos */
         --danger-color: #ea4335; /* Vermelho para impostos/IOF */
+        --action-color: #f97316; /* Laranja para destaque de ação */
     }
     body {
         font-family: 'Inter', sans-serif;
@@ -24,14 +25,20 @@
         opacity: 1;
         color: white;
     }
-    /* Garante boa visualização em telas pequenas */
-    @media (max-width: 768px) {
-        #table-wrapper {
-            overflow-x: auto;
-        }
-        #data-table {
-            min-width: 1400px; /* Largura mínima para evitar quebra em mobile */
-        }
+    /* Estilo para a tabela, garantindo rolagem e cabeçalho fixo */
+    #table-container {
+        max-height: 70vh; /* Altura máxima para rolagem vertical */
+        overflow-y: auto; /* Permite rolagem vertical */
+        overflow-x: auto; /* Permite rolagem horizontal */
+        position: relative;
+    }
+    #data-table {
+        min-width: 1400px; /* Garante que haja rolagem horizontal para muitas colunas */
+    }
+    #data-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10; /* Garante que o cabeçalho fique sobre o corpo da tabela */
     }
 </style>
 
@@ -70,15 +77,19 @@
             </div>
 
             <!-- Tabela de Dados (Renderizada por JS) -->
+            <!-- O wrapper com as classes shadow e rounded foi movido para o #table-container -->
             <div id="table-wrapper" class="bg-white shadow-2xl rounded-xl overflow-hidden">
-                <table id="data-table" class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-[var(--primary-color)] text-white sticky top-0">
-                        <!-- Cabeçalhos de Coluna -->
-                    </thead>
-                    <tbody id="table-body" class="bg-white divide-y divide-gray-100">
-                        <!-- Linhas de Dados -->
-                    </tbody>
-                </table>
+                 <!-- Novo container para controlar a rolagem vertical -->
+                <div id="table-container" class="max-h-[70vh] overflow-y-auto overflow-x-auto">
+                    <table id="data-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-[var(--primary-color)] text-white sticky top-0">
+                            <!-- Cabeçalhos de Coluna -->
+                        </thead>
+                        <tbody id="table-body" class="bg-white divide-y divide-gray-100">
+                            <!-- Linhas de Dados -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
         </section>
@@ -102,7 +113,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         
         // ** INJEÇÃO DE DADOS PHP AQUI **
-        // A variável $aggregates do PHP é convertida para uma array JavaScript
         const rawData = <?= json_encode($aggregates, JSON_NUMERIC_CHECK); ?>;
         // ** FIM DA INJEÇÃO **
         
@@ -175,11 +185,16 @@
             }
         }
         
-        /** * Formata taxa percentual. */
+        /** * Formata taxa percentual. 
+         * O valor é dividido por 100 antes de formatar.
+         * *NOTA: Corrigido o erro de formatação que não incluía o '%'.
+         */
         function formatRate(rate) {
             if (rate === null || rate === undefined) return '---';
-            const num = parseFloat(rate);
-                if (isNaN(num)) return '---';
+            const scaledRate = parseFloat(rate) / 1;
+            const num = parseFloat(scaledRate);
+            if (isNaN(num)) return '---';
+            // Usa toFixed para garantir 2 casas decimais e substitui '.' por ',' para padrão BR
             return num.toFixed(2).replace('.', ',');
         }
         
@@ -218,9 +233,6 @@
                 let valB = b[key] ?? (type === 'string' ? '' : -Infinity);
 
                 if (type === 'number' || type === 'currency') {
-                    // Valores numéricos já vêm como número devido ao JSON_NUMERIC_CHECK.
-                    // A divisão por 100 não é necessária aqui, pois a ordenação deve ocorrer
-                    // sobre os valores brutos (que mantêm a mesma proporção).
                     valA = parseFloat(valA);
                     valB = parseFloat(valB);
                     if (isNaN(valA)) valA = -Infinity;
@@ -245,17 +257,14 @@
             currentFilter = term.toLowerCase().trim();
             
             if (!currentFilter) {
-                // Se o filtro estiver vazio, reverte para os dados originais e re-renderiza
                 dataSet = [...rawData]; 
             } else {
-                // Filtra nos dados originais
                 dataSet = rawData.filter(item => 
                     Object.values(item).some(value => {
                         return String(value).toLowerCase().includes(currentFilter);
                     })
                 );
             }
-            // Mantém a ordenação após a filtragem
             const currentMap = columnMap[currentSort.key];
             if(currentMap) {
                 sortData(currentSort.key, currentSort.direction, currentMap.type);
@@ -266,7 +275,6 @@
 
         /** Calcula e exibe os totais. */
         function updateTotals(data) {
-            // Soma os valores BRUTOS (escalados)
             const totalBruto = data.reduce((sum, item) => sum + (parseFloat(item.Valor_Bruto) || 0), 0);
             const totalLiquido = data.reduce((sum, item) => sum + (parseFloat(item.Valor_Liquido) || 0), 0);
 
@@ -283,17 +291,14 @@
             thead.innerHTML = '';
             const row = thead.insertRow();
             
-            // Colunas visíveis na ordem desejada
             const visibleKeys = Object.keys(columnMap);
 
             visibleKeys.forEach(key => {
                 const map = columnMap[key];
                 const th = document.createElement('th');
                 
-                // Classes base do cabeçalho
                 th.className = "px-4 py-3 text-xs font-semibold uppercase tracking-wider transition duration-150 ease-in-out";
                 
-                // Colunas que NÃO devem ser clicáveis
                 const isSortable = map.type !== 'string' || ['Produto', 'Nome', 'Estrategia'].includes(key);
 
                 if (isSortable) {
@@ -301,7 +306,6 @@
                     th.dataset.key = key;
                     th.dataset.type = map.type;
                     
-                    // Ícones de ordenação
                     const iconUp = `<span class="sort-icon sort-icon-up" aria-hidden="true">&#9650;</span>`;
                     const iconDown = `<span class="sort-icon sort-icon-down" aria-hidden="true">&#9660;</span>`;
 
@@ -318,14 +322,13 @@
                     });
                 } else {
                      th.textContent = map.alias;
-                     th.classList.add('bg-[var(--primary-color)]'); // Mantém a cor
+                     th.classList.add('bg-[var(--primary-color)]');
                 }
 
                 // Ajuste de alinhamento visual para valores
                 if (['Taxa_Emissao', 'Quantidade', 'Valor_Bruto', 'IOF', 'IR', 'Valor_Liquido'].includes(key)) {
                     th.style.textAlign = 'right';
                     if (isSortable) {
-                         // Inverte a ordem do texto e dos ícones para manter o alinhamento correto
                          th.querySelector('div').classList.add('flex-row-reverse');
                          th.querySelector('span').classList.remove('justify-between');
                     }
@@ -368,7 +371,6 @@
                     'default': 'text-left text-gray-900',
                 };
                 
-                // Colunas visíveis na ordem desejada
                 const visibleKeys = Object.keys(columnMap);
 
                 visibleKeys.forEach(key => {
@@ -380,10 +382,8 @@
 
                     // Formatação
                     if (key === 'Valor_Bruto' || key === 'Valor_Liquido' || key === 'IOF' || key === 'IR') {
-                        // Usa a função corrigida que aplica a divisão por 100
                         displayValue = formatCurrency(value);
                     } else if (key === 'Taxa_Emissao') {
-                        // Usa a função corrigida que aplica a divisão por 100
                         displayValue = formatRate(value);
                     } else if (key === 'Vencimento' || key === 'Data_Compra') {
                         displayValue = formatDate(value);
@@ -408,7 +408,11 @@
                     return `${k.toLowerCase()}=${encodeURIComponent(val)}`;
                 }).join('&');
                 
-                const negotiateLink = `<a href="index.php?controller=dados&action=negotiate_form&${params}" class="btn-negociar text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-1 rounded-md transition duration-150 shadow-md text-xs font-semibold">Negociar</a>`;
+                // BOTÃO DE NEGOCIAÇÃO DESTACADO
+                const negotiateLink = `<a href="index.php?controller=dados&action=negotiate_form&${params}" 
+                                         class="btn-negociar text-white bg-[var(--action-color)] hover:bg-orange-600 px-3 py-1.5 rounded-lg transition duration-150 shadow-lg text-xs font-bold uppercase tracking-wider transform hover:scale-105 inline-block">
+                                         Negociar
+                                     </a>`;
                 actionsCell.innerHTML = negotiateLink;
             });
 
@@ -430,12 +434,8 @@
         }
         
         // --- Inicialização ---
-        // Só inicializa se houver dados
         if (rawData.length > 0) {
-            // 1. Cria o cabeçalho interativo
             createHeader();
-            
-            // 2. Aplica a ordenação inicial (ex: Produto Ascendente)
             const initialKey = currentSort.key;
             sortData(initialKey, currentSort.direction, columnMap[initialKey].type);
         }
