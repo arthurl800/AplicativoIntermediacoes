@@ -1,21 +1,21 @@
 ## Purpose
-This project is a small PHP MVC-style app for importing "intermediações" data (CSV/XLSX) into a local SQLite database. Keep suggestions tightly focused on the existing patterns and files listed below.
+This project is a small PHP MVC-style app for importing "intermediações" data (CSV/XLSX) into a local MySQL database using DBeaver. Keep suggestions tightly focused on the existing patterns and files listed below.
 
 ## Big-picture architecture
 - Entry point: `index.php` acts as a tiny router. It maps `?controller=...&action=...` to controller classes in `app/controller/`.
 - Controllers (suffix `Controller`) orchestrate work and include views from `app/view/` and shared `includes/` header/footer.
-- Models (suffix `Model`) encapsulate DB logic. DB access uses the `app/util/Database.php` singleton (SQLite stored as `app_data.db` in repo root).
+- Models (suffix `Model`) encapsulate DB logic. DB access uses the `app/util/Database.php` singleton (MySQL database).
 - Utilities live in `app/util/` and include `AuthManager.php` (session-based auth), `IFileProcessor.php`, `CsvProcessor.php`, and `XlsxProcessor.php` (uses PhpSpreadsheet via Composer).
 - Views are PHP files in `app/view/` that expect controller-provided variables (e.g. `$users`, `$result`).
 
 ## Data flow examples (explicit)
-- Upload flow: `app/controller/UploadController.php` -> selects `CsvProcessor` or `XlsxProcessor` -> `IntermediacaoModel::insertBatch()` -> `Database` (SQLite `INTERMEDIACOES` table).
+- Upload flow: `app/controller/UploadController.php` -> selects `CsvProcessor` or `XlsxProcessor` -> `IntermediacaoModel::insertBatch()` -> `Database` (MySQL `INTERMEDIACOES` table).
 - Admin user list: `app/controller/AdminController::users()` calls `UserModel::findAll()` and passes `$users` to `app/view/admin/user_list.php`.
 
 ## Project-specific conventions and gotchas
 - Routing is query-string based: `index.php?controller=upload&action=processUpload`. Controllers are instantiated directly; methods are called if present.
 - File inclusion uses relative paths with `dirname(dirname(__DIR__))` — keep that pattern when adding files or moving views/controllers.
-- `Database.php` initializes a SQLite DB at runtime (`app_data.db`) and creates tables if missing. Do not assume an external DB server.
+- `Database.php` initializes a MySQL DB at runtime and creates tables if missing. Do not assume an external DB server.
 - `CsvProcessor` and `XlsxProcessor` expect exactly 23 columns per row (see `$expectedColumns = 23`). They skip the header row.
 - `XlsxProcessor` relies on `PhpOffice\PhpSpreadsheet`. Ensure `vendor/autoload.php` is required (already done in `index.php`). Run `composer install` when dependencies change.
 - `AuthManager` stores `user_id`, `username`, `role`, and `logged_in` in `$_SESSION`. Controller constructors often call `new AuthManager()` and immediately check `isAdmin()` or `isLoggedIn()` to guard access.
@@ -50,4 +50,5 @@ This project is a small PHP MVC-style app for importing "intermediações" data 
 - Models: `app/model/UserModel.php`, `app/model/IntermediacaoModel.php`
 - Admin flows: `app/controller/AdminController.php`, `app/view/admin/user_list.php`
 
-If anything here is unclear or you'd like the instructions to emphasize different areas (tests, security hardening, or refactors), tell me which parts to expand or revise.
+Ao clicar em "Negociações" no head da aplicação, abre a página de "Painel de Negociações", no entanto não estão buscando os dados corretos da INTERMEDIACOES_TABLE que é minha tabela na Database INTERMEDIACOES no banco de dados Mysql.
+Ao clicar em "Negociar", deve-se abrir uma página correspondente na mesma linguagem visual da página de "painel de negociações", lá deve-se abrir os dados pré preenchidos da negociação selecionada na tabela anterior, respeitando as restrições dos dados que será trago do banco de dados. Exemplo, se nessa linha houver 6 títulos, eu posso vender no máximo 6 e no mínimo 1, e se eu vender, deve-se "dar baixa" na quantidade vendida, sobrando apenas o valor ainda não vendido. Esses dados devem ser tragos convertidos do Banco, pois lá as datas estão em padrão AAAA-MM-DD e quero que fiquem DD/MM/AAAA e os valores monetários devem ser apresentados em R$ e divididos por 100. Pois no banco, 5.167.367,00 é equivalente a 51.673,67.
