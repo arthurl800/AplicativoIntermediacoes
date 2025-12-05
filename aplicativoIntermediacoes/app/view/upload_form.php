@@ -1,5 +1,7 @@
 <main>
 
+<link rel="stylesheet" href="includes/responsive-table.css">
+
 <div style="border: 1px solid #007bff; padding: 15px; margin-top: 20px; background-color: #ffffa5;">
     <h2>Importar Dados</h2>
     
@@ -33,7 +35,8 @@
         <section style="margin-top:20px; padding:12px; border:1px dashed #007bff; background:#f8fbff;">
             <h3 style="margin-top:0;">Preview da Última Importação (head 25)</h3>
             <div style="overflow:auto;">
-                <table style="width:100%; border-collapse:collapse;">
+                <div class="preview-wrapper">
+                <table class="preview-table" style="width:100%; border-collapse:collapse;">
                     <thead>
                         <tr style="background:#e9f5ff;">
                             <?php if (!empty($previewHeader)): ?>
@@ -62,12 +65,14 @@
                                         $cellVal = date('d/m/Y', strtotime($cellVal));
                                     }
                                     ?>
-                                    <td style="padding:6px;border:1px solid #eee;"><?= htmlspecialchars($cellVal ?? '') ?></td>
+                                    <?php $label = $previewHeader[$i] ?? ('Col ' . ($i+1)); ?>
+                                    <td data-label="<?= htmlspecialchars($label) ?>" style="padding:6px;border:1px solid #eee;"><?= htmlspecialchars($cellVal ?? '') ?></td>
                                 <?php endfor; ?>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
             <div style="margin-top:10px;">
                 <a href="index.php?controller=dados&action=visualizar&clear_preview=1" style="text-decoration:none;color:#333;background:#fff;border:1px solid #007bff;padding:6px 10px;border-radius:4px;">Fechar Preview</a>

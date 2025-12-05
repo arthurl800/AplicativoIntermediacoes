@@ -127,7 +127,7 @@ $user = $authManager->getCurrentUser();
 </head>
 <body>
     <header class="header">
-        <h1>Sistema de Intermediações</h1>
+        <h1>Sistema de Gerenciamento Financeiro</h1>
         
         <nav class="nav">
             <?php if ($isLoggedIn): ?>

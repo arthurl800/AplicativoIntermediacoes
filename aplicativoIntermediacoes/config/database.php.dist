@@ -1,0 +1,11 @@
+<?php
+// config/database.php.dist - sample configuration (do NOT rename to database.php in repo)
+return [
+    'DB_HOST'     => 'localhost',
+    'DB_NAME'     => 'INTERMEDIACOES',
+    'DB_USER'     => 'INTERMEDIACOES_USER',
+    'DB_PASS'     => 'your_password_here',
+    'DB_CHARSET'  => 'utf8mb4',
+    'TABLE_NAME'  => 'INTERMEDIACOES_TABLE',
+    'USER_TABLE'  => 'USUARIOS_TABLE'
+];

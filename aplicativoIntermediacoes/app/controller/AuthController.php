@@ -59,9 +59,12 @@ class AuthController {
 
     // Exibe o formulário de cadastro
     public function register() {
-        // Se já estiver logado, redireciona para o dashboard
-        if ($this->authManager->isLoggedIn()) {
-            AuthManager::redirectTo('index.php?controller=dashboard&action=index');
+        // Registro de novos usuários só pode ser realizado por administradores
+        if (!$this->authManager->isAdmin()) {
+            // Se o usuário não for admin (ou não estiver logado), negar acesso
+            $_SESSION['auth_error'] = "Apenas administradores podem cadastrar novos usuários.";
+            AuthManager::redirectTo('index.php?controller=auth&action=login');
+            return;
         }
         
         $base_dir = dirname(dirname(__DIR__));
@@ -74,6 +77,13 @@ class AuthController {
     public function processRegister() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             AuthManager::redirectTo('index.php?controller=auth&action=register');
+        }
+        
+        // Apenas administradores podem criar novos usuários
+        if (!$this->authManager->isAdmin()) {
+            $_SESSION['auth_error'] = "Acesso negado. Apenas administradores podem criar usuários.";
+            AuthManager::redirectTo('index.php?controller=auth&action=login');
+            return;
         }
 
         $username = trim($_POST['username'] ?? '');

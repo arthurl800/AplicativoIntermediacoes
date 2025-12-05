@@ -74,16 +74,46 @@ class DataController {
     public function negotiate_form() {
         $base_dir = dirname(dirname(__DIR__));
         // Verifica parâmetros (vêm da linha de negociação)
+        // Mapeia possíveis nomes de parâmetro (produzidos pela tabela JS)
         $data = [
-            'conta' => $_GET['conta'] ?? '',
-            'cliente' => $_GET['cliente'] ?? '',
-            'tipo' => $_GET['tipo'] ?? '',
-            'indexador' => $_GET['indexador'] ?? '',
-            'emissor' => $_GET['emissor'] ?? '',
-            'vencimento' => $_GET['vencimento'] ?? '',
-            'quantidade' => $_GET['quantidade'] ?? '',
-            'valor_bruto' => $_GET['valor_bruto'] ?? ''
+            'conta' => $_GET['conta'] ?? ($_GET['Conta'] ?? ''),
+            'nome' => $_GET['nome'] ?? ($_GET['cliente'] ?? ($_GET['Nome'] ?? '')),
+            'produto' => $_GET['produto'] ?? ($_GET['tipo'] ?? ($_GET['Produto'] ?? '')),
+            'estrategia' => $_GET['estrategia'] ?? ($_GET['indexador'] ?? ($_GET['Estrategia'] ?? '')),
+            'emissor' => $_GET['emissor'] ?? ($_GET['CNPJ'] ?? ($_GET['Emissor'] ?? '')),
+            'vencimento' => $_GET['vencimento'] ?? ($_GET['Vencimento'] ?? ''),
+            'quantidade' => isset($_GET['quantidade']) ? (int)$_GET['quantidade'] : (isset($_GET['Quantidade']) ? (int)$_GET['Quantidade'] : 0),
+            'valor_bruto' => isset($_GET['valor_bruto']) ? $_GET['valor_bruto'] : (isset($_GET['Valor_Bruto']) ? $_GET['Valor_Bruto'] : 0),
+            'valor_liquido' => isset($_GET['valor_liquido']) ? $_GET['valor_liquido'] : (isset($_GET['Valor_Liquido']) ? $_GET['Valor_Liquido'] : 0),
+            'taxa_emissao' => isset($_GET['taxa_emissao']) ? $_GET['taxa_emissao'] : (isset($_GET['Taxa_Emissao']) ? $_GET['Taxa_Emissao'] : 0)
         ];
+
+        // Preserve raw vencimento (DB format) for server-side processing, then format for display
+        if (!empty($data['vencimento'])) {
+            $data['vencimento_raw'] = $data['vencimento'];
+            // aceita AAAA-MM-DD ou YYYY-MM-DD
+            $d = $data['vencimento'];
+            if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $d, $m)) {
+                $data['vencimento'] = sprintf('%02s/%02s/%02s', $m[3], $m[2], $m[1]);
+            }
+        } else {
+            $data['vencimento_raw'] = '';
+        }
+
+        // Valores monetários no banco estão em centavos (ex: 51673367 -> 516733.67).
+        // Para exibição convertemos para reais com duas casas. Também aceita strings/numerics.
+        $formatAmount = function($v) {
+            if ($v === null || $v === '') return '0,00';
+            $num = is_numeric($v) ? (float)$v : floatval(str_replace([',','R$',' '], ['','.',''], $v));
+            // assume inteiro em centavos se for maior que 1000 and no decimal point
+            if ($num > 1000 && intval($num) == $num) {
+                $num = $num / 100.0;
+            }
+            return number_format($num, 2, ',', '.');
+        };
+
+        $data['valor_bruto_display'] = $formatAmount($data['valor_bruto'] ?? $data['Valor_Bruto'] ?? 0);
+        $data['valor_liquido_display'] = $formatAmount($data['valor_liquido'] ?? $data['Valor_Liquido'] ?? 0);
 
         include $base_dir . '/includes/header.php';
         include $base_dir . '/app/view/dados/negotiate_form.php';
@@ -155,6 +185,23 @@ class DataController {
             'retorno_vendedor_pct' => $retorno_vendedor_pct,
             'operador' => $operator['username'] ?? null
         ]);
+
+        // Após salvar a negociação, atualiza quantidades na tabela de intermediações
+        try {
+            $criteria = [
+                'conta' => $conta,
+                'produto' => $tipo,
+                'emissor' => $_POST['emissor'] ?? null,
+                'vencimento' => $_POST['vencimento'] ?? null,
+            ];
+            // Tenta decrementar; loga sucesso/fracasso
+            $ok = $this->intermediacaoModel->decrementQuantityByAggregate($criteria, $quantidade_negociada);
+            if (!$ok) {
+                error_log("Warning: decrementQuantityByAggregate returned false for saved negotiation {$savedId}");
+            }
+        } catch (Exception $e) {
+            error_log("Exception while decrementing quantities after negotiation: " . $e->getMessage());
+        }
 
         $resultData['saved_id'] = $savedId;
 

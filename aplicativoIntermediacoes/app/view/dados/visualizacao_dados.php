@@ -1,3 +1,4 @@
+<?php if (isset($aggregates) && count($aggregates) > 0): ?>
 <style>
     /* Carregamento da Fonte Inter e cores customizadas */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
@@ -29,55 +30,87 @@
     #table-container {
         max-height: 70vh; /* Altura máxima para rolagem vertical */
         overflow-y: auto; /* Permite rolagem vertical */
-        overflow-x: auto; /* Permite rolagem horizontal */
+        overflow-x: hidden; /* Evita rolagem horizontal */
         position: relative;
     }
     #data-table {
-        min-width: 1400px; /* Garante que haja rolagem horizontal para muitas colunas */
+        width: 100%;
+        table-layout: auto;
+        border-collapse: collapse;
+        max-width: 100%;
+    }
+    /* Quebra de palavras e reduções para evitar overflow */
+    #data-table td, #data-table th {
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        padding: 0.75rem 1rem; /* aumenta o espaçamento para leitura */
+    }
+
+    /* Botões e ações com um estilo unificado */
+    .btn-negociar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    /* Melhor experiência móvel: cada linha vira um cartão com grid de duas colunas (label / valor) */
+    @media (max-width: 1280px) {
+        #table-container { overflow-x: hidden; }
+        #data-table thead { display: none; }
+        #data-table, #data-table tbody { display: block; }
+        #data-table tr { display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-bottom: 14px; border: 1px solid #e6edf3; border-radius: 10px; padding: 10px; background: #fff; }
+        /* Cada célula vira um par (label / value) com grid de duas colunas */
+        #data-table td { display: grid; grid-template-columns: 40% 60%; align-items: center; padding: 8px 10px; border-bottom: 1px dashed #f1f5f9; }
+        #data-table td:last-child { border-bottom: none; }
+        #data-table td::before { content: attr(data-label); font-weight: 700; color: #374151; padding-right: 8px; }
+
+        /* Ajustes tipográficos para mobile */
+        #data-table td { font-size: 0.95rem; }
+        #data-table tr { box-shadow: 0 2px 6px rgba(15,23,42,0.04); }
+
+        /* Esconder colunas menos importantes em telas muito pequenas */
+        @media (max-width: 640px) {
+            /* Esconde Emissor e Data_Compra para reduzir o ruído visual */
+            td[data-label*="Emissor"] { display: none; }
+            td[data-label*="Data Compra"] { display: none; }
+        }
+        /* Mostra o compact header no modo responsivo */
+        #compact-header { display: block; }
     }
     #data-table thead {
         position: sticky;
         top: 0;
         z-index: 10; /* Garante que o cabeçalho fique sobre o corpo da tabela */
     }
-</style>
+        /* Button and responsive utilities have been centralized in includes/responsive-table.css */
+    </style>
 
-<!-- Inclusão do Tailwind CSS (Recomendado para o layout) -->
-<script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inclusão do Tailwind CSS (Recomendado para o layout) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="includes/responsive-table.css">
 
-<main class="p-4 md:p-8 max-w-7xl mx-auto">
-    <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b pb-2">Painel de Negociações</h2>
+                <!-- Tabela de Dados (Renderizada por JS) -->
+            <!-- O wrapper com as classes shadow e rounded foi movido para o #table-container -->
+            <!-- Compact header for mobile: sticky and compact labels -->
+            <div id="compact-header" class="hidden bg-[var(--primary-color)] text-white px-4 py-2 rounded-t-xl mb-2" style="position:sticky;top:0;z-index:20;">
 
-    <?php $aggregates = $aggregates ?? []; ?>
-
-    <?php if (!empty($aggregates)): ?>
-        <section id="negociacoes" class="mt-4">
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">Investimentos Negociáveis por Cliente</h3>
-
-            <!-- Controles e Totais -->
-            <div class="bg-white shadow-lg rounded-xl p-4 mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <!-- Filtro Global -->
-                <div class="w-full md:w-1/3">
-                    <input type="text" id="global-search" placeholder="Buscar em todas as colunas..." 
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
-                           oninput="handleGlobalSearch(event.target.value)">
-                </div>
-
-                <!-- Totais Agregados -->
-                <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-8 text-sm font-medium">
-                    <div class="p-2 bg-gray-50 rounded-lg shadow-inner">
-                        <span class="text-gray-500">Valor Bruto Total:</span>
-                        <span id="total-bruto" class="block text-lg font-extrabold text-gray-800">R$ 0,00</span>
+    <link rel="stylesheet" href="includes/responsive-table.css">
+                <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 text-sm font-semibold">
+                        <span>Cliente</span>
+                        <span>Produto</span>
+                        <span>Qtd.</span>
+                        <span>Vl. Líquido</span>
                     </div>
-                    <div class="p-2 bg-gray-50 rounded-lg shadow-inner">
-                        <span class="text-gray-500">Valor Líquido Total:</span>
-                        <span id="total-liquido" class="block text-lg font-extrabold text-[var(--secondary-color)]">R$ 0,00</span>
-                    </div>
+                    <div class="text-xs opacity-90">Ações</div>
                 </div>
             </div>
-
-            <!-- Tabela de Dados (Renderizada por JS) -->
-            <!-- O wrapper com as classes shadow e rounded foi movido para o #table-container -->
             <div id="table-wrapper" class="bg-white shadow-2xl rounded-xl overflow-hidden">
                  <!-- Novo container para controlar a rolagem vertical -->
                 <div id="table-container" class="max-h-[70vh] overflow-y-auto overflow-x-auto">
@@ -376,6 +409,9 @@
                 visibleKeys.forEach(key => {
                     const cell = row.insertCell();
                     cell.className = `px-4 py-2 text-sm ${alignClasses[key] || alignClasses.default}`;
+                    // Define o label legível para o modo responsivo (data-label)
+                    const label = (columnMap[key] && columnMap[key].alias) ? columnMap[key].alias : key;
+                    cell.setAttribute('data-label', label + ':');
                     
                     const value = item[key];
                     let displayValue = value;
@@ -395,7 +431,9 @@
                          displayValue = value || '---';
                     }
 
-                    cell.textContent = displayValue;
+                    // Para o layout móvel, exibimos o label no ::before; aqui colocamos o valor real
+                    const textNode = document.createTextNode(displayValue);
+                    cell.appendChild(textNode);
                 });
 
                 // Coluna Ações

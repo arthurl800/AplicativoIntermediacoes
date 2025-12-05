@@ -59,4 +59,94 @@ class AdminController {
 
         AuthManager::redirectTo('index.php?controller=admin&action=users');
     }
+
+    /**
+     * Exibe o formulário de edição de usuário (somente GET).
+     */
+    public function editUser() {
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            $_SESSION['admin_message'] = "Usuário inválido.";
+            AuthManager::redirectTo('index.php?controller=admin&action=users');
+        }
+
+        $user = $this->userModel->findById($id);
+        if (!$user) {
+            $_SESSION['admin_message'] = "Usuário não encontrado.";
+            AuthManager::redirectTo('index.php?controller=admin&action=users');
+        }
+
+        include dirname(dirname(__DIR__)) . '/includes/header.php';
+        include dirname(dirname(__DIR__)) . '/app/view/admin/user_edit.php';
+        include dirname(dirname(__DIR__)) . '/includes/footer.php';
+    }
+
+    /**
+     * Processa o envio do formulário de edição de usuário.
+     */
+    public function updateUser() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['id'])) {
+            $_SESSION['admin_message'] = "Requisição inválida.";
+            AuthManager::redirectTo('index.php?controller=admin&action=users');
+        }
+
+        $id = (int)$_POST['id'];
+        $username = trim($_POST['username'] ?? '');
+        $cpf = trim($_POST['cpf'] ?? '');
+        $role = trim($_POST['role'] ?? 'user');
+        $password = $_POST['password'] ?? null;
+
+        if ($username === '' || $cpf === '') {
+            $_SESSION['admin_message'] = "Nome de usuário e CPF são obrigatórios.";
+            AuthManager::redirectTo('index.php?controller=admin&action=editUser&id=' . $id);
+        }
+
+        $ok = $this->userModel->update($id, $username, $password, $cpf, $role);
+        if ($ok) {
+            $_SESSION['admin_message'] = "Usuário atualizado com sucesso.";
+        } else {
+            $_SESSION['admin_message'] = "Falha ao atualizar usuário.";
+        }
+
+        AuthManager::redirectTo('index.php?controller=admin&action=users');
+    }
+
+    /**
+     * Exibe o formulário para adicionar um novo usuário (apenas admin).
+     */
+    public function addUser() {
+        include dirname(dirname(__DIR__)) . '/includes/header.php';
+        include dirname(dirname(__DIR__)) . '/app/view/admin/user_add.php';
+        include dirname(dirname(__DIR__)) . '/includes/footer.php';
+    }
+
+    /**
+     * Processa a criação de um novo usuário pelo admin.
+     */
+    public function createUser() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['admin_message'] = 'Requisição inválida.';
+            AuthManager::redirectTo('index.php?controller=admin&action=users');
+        }
+
+        $username = trim($_POST['username'] ?? '');
+        $cpf = trim($_POST['cpf'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirm = $_POST['confirm_password'] ?? '';
+        $role = $_POST['role'] ?? 'user';
+
+        if ($username === '' || $cpf === '' || $password === '' || $password !== $confirm) {
+            $_SESSION['admin_message'] = 'Preencha todos os campos corretamente.';
+            AuthManager::redirectTo('index.php?controller=admin&action=addUser');
+        }
+
+        $ok = $this->userModel->create($username, $password, $cpf, $role);
+        if ($ok) {
+            $_SESSION['admin_message'] = 'Usuário criado com sucesso.';
+        } else {
+            $_SESSION['admin_message'] = 'Falha ao criar usuário. Verifique logs.';
+        }
+
+        AuthManager::redirectTo('index.php?controller=admin&action=users');
+    }
 }

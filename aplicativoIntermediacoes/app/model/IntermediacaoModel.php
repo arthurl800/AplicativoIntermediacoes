@@ -153,7 +153,19 @@ class IntermediacaoModel {
      */
     public function getAllData(): array {
         try {
-            $sql = "SELECT * FROM {$this->getTableName()} LIMIT 100";
+            // Tenta detectar a coluna de quantidade para não retornar registros zerados
+            $available = $this->getAvailableColumns();
+            $colQtd = null;
+            foreach (['Quantidade', 'Qtd', 'QTD'] as $v) {
+                if (in_array($v, $available, true)) { $colQtd = $v; break; }
+            }
+
+            if ($colQtd) {
+                $sql = "SELECT * FROM {$this->getTableName()} WHERE {$colQtd} > 0 LIMIT 100";
+            } else {
+                $sql = "SELECT * FROM {$this->getTableName()} LIMIT 100";
+            }
+
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -192,6 +204,17 @@ class IntermediacaoModel {
             $sql .= " WHERE " . implode(' AND ', $where);
         }
 
+        // Assegura que registros com Quantidade = 0 não apareçam
+        $available = $this->getAvailableColumns();
+        $colQtd = null;
+        foreach (['Quantidade', 'Qtd', 'QTD'] as $v) {
+            if (in_array($v, $available, true)) { $colQtd = $v; break; }
+        }
+
+        if ($colQtd) {
+            $sql .= (!empty($where) ? ' AND ' : ' WHERE ') . "{$colQtd} > 0";
+        }
+
         $sql .= " LIMIT 100";
 
         try {
@@ -211,17 +234,25 @@ class IntermediacaoModel {
      * @param int $limit Limite de registros a retornar.
      * @return array
      */
-   public function getNegotiableAggregates(int $limit = 200): array {
+    public function getNegotiableAggregates(int $limit = 200): array {
     $available = $this->getAvailableColumns();
 
-    // Colunas mapeadas conforme seu banco real
-    $conta = in_array('Conta', $available) ? 'Conta' : null;
-    $nome = in_array('Nome', $available) ? 'Nome' : null;
-    $tipo = in_array('Produto', $available) ? 'Produto' : null;
-    $estrategia = in_array('Estrategia', $available) ? 'Estrategia' : null;
-    $emissor = in_array('Emissor', $available) ? 'Emissor' : null;
-    $vencimento = in_array('Vencimento', $available) ? 'Vencimento' : null;
-    $taxaEmissao = in_array('Taxa_Emissao', $available) ? 'Taxa_Emissao' : null;
+    // Helper para localizar uma coluna real entre variantes conhecidas
+    $find = function(array $variants) use ($available) {
+        foreach ($variants as $v) {
+            if (in_array($v, $available, true)) return $v;
+        }
+        return null;
+    };
+
+    // Lista de variantes comuns para cada campo lógico
+    $conta = $find(['Conta', 'Codigo_Cliente', 'CodigoCliente', 'Conta_Cliente']);
+    $nome = $find(['Nome', 'Nome_Corretora', 'Cliente', 'Nome_Cliente', 'NomeCliente']);
+    $tipo = $find(['Produto', 'Ativo', 'Nome_Produto', 'Titulo']);
+    $estrategia = $find(['Estrategia', 'Tipo_Plano', 'Tipo_Operacao', 'Indexador']);
+    $emissor = $find(['Emissor', 'CNPJ', 'Emitente']);
+    $vencimento = $find(['Vencimento', 'Data_Vencimento', 'Vencimento_Data']);
+    $taxaEmissao = $find(['Taxa_Emissao', 'Taxa_Emissao_Venda', 'Taxa']);
 
     // Monta partes dinâmicas
     $groupParts = [];
@@ -258,7 +289,20 @@ class IntermediacaoModel {
     try {
         $orderCol = $nome ?? $conta ?? $tipo ?? null;
         $orderClause = $orderCol ? "ORDER BY {$orderCol} ASC" : "";
-        $sql = "SELECT {$selectSql} FROM {$this->tableName} GROUP BY {$groupSql} {$orderClause} LIMIT :limit";
+
+        // Se a coluna de Quantidade existir, filtramos linhas nulas/zeradas antes do agrupamento
+        $colQtd = null;
+        foreach (['Quantidade', 'Qtd', 'QTD'] as $v) {
+            if (in_array($v, $available, true)) { $colQtd = $v; break; }
+        }
+
+        if ($colQtd) {
+            // WHERE filtra linhas com quantidade <=0
+            $sql = "SELECT {$selectSql} FROM {$this->tableName} WHERE {$colQtd} > 0 GROUP BY {$groupSql} {$orderClause} LIMIT :limit";
+        } else {
+            // Caso não exista a coluna de quantidade detectável, usa HAVING sobre a soma agregada
+            $sql = "SELECT {$selectSql} FROM {$this->tableName} GROUP BY {$groupSql} HAVING Quantidade > 0 {$orderClause} LIMIT :limit";
+        }
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
@@ -275,6 +319,119 @@ class IntermediacaoModel {
         return [];
     }
 }
+
+    /**
+     * Decrementa quantidade disponível nas linhas que correspondem a um conjunto de critérios agregados.
+     * Faz atualização em FIFO sobre as linhas correspondentes ordenadas por Data_Compra ou ID_Registro.
+     * Ajusta Valor_Bruto e Valor_Liquido proporcionalmente à quantidade remanescente.
+     * @param array $criteria chaves: conta, produto, emissor, vencimento (valores literais a comparar)
+     * @param int $qty quantidade a decrementar
+     * @return bool true se a operação completou (mesmo que parcialmente), false se erro
+     */
+    public function decrementQuantityByAggregate(array $criteria, int $qty): bool {
+        if ($qty <= 0) return false;
+
+        // Determina colunas reais conforme variantes
+        $available = $this->getAvailableColumns();
+        $find = function(array $variants) use ($available) {
+            foreach ($variants as $v) {
+                if (in_array($v, $available, true)) return $v;
+            }
+            return null;
+        };
+
+        $colConta = $find(['Conta', 'Codigo_Cliente', 'CodigoCliente']);
+        $colProduto = $find(['Produto', 'Ativo']);
+        $colEmissor = $find(['Emissor', 'CNPJ', 'Emitente']);
+        $colVenc = $find(['Vencimento', 'Data_Vencimento', 'Vencimento']);
+        $colQtd = $find(['Quantidade', 'Qtd', 'QTD']);
+        $colValBruto = $find(['Valor_Bruto', 'ValorBruto', 'Valor_Bruto_Cents']);
+        $colValLiq = $find(['Valor_Liquido', 'ValorLiquido']);
+        $colId = $find(['ID_Registro', 'id', 'Id']);
+        $colDataCompra = $find(['Data_Compra', 'DataCompra', 'Data']);
+
+        if (!$colQtd || !$colValBruto) {
+            error_log("decrementQuantityByAggregate: colunas críticas não encontradas (Quantidade/Valor_Bruto)");
+            return false;
+        }
+
+        // Monta WHERE dinâmico com os critérios fornecidos
+        $where = [];
+        $params = [];
+        if (!empty($colConta) && !empty($criteria['conta'])) { $where[] = "{$colConta} = :conta"; $params[':conta'] = $criteria['conta']; }
+        if (!empty($colProduto) && !empty($criteria['produto'])) { $where[] = "{$colProduto} = :produto"; $params[':produto'] = $criteria['produto']; }
+        if (!empty($colEmissor) && !empty($criteria['emissor'])) { $where[] = "{$colEmissor} = :emissor"; $params[':emissor'] = $criteria['emissor']; }
+        if (!empty($colVenc) && !empty($criteria['vencimento'])) { $where[] = "{$colVenc} = :venc"; $params[':venc'] = $criteria['vencimento']; }
+
+        if (empty($where)) {
+            error_log("decrementQuantityByAggregate: nenhum critério fornecido");
+            return false;
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        // Busca linhas afetadas em ordem FIFO (Data_Compra ou ID)
+        $orderBy = $colDataCompra ? $colDataCompra : ($colId ? $colId : $colQtd);
+
+        try {
+            $this->pdo->beginTransaction();
+
+            $selectSql = "SELECT * FROM {$this->tableName} WHERE {$whereSql} AND {$colQtd} > 0 ORDER BY {$orderBy} ASC FOR UPDATE";
+            $stmt = $this->pdo->prepare($selectSql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $toConsume = $qty;
+            foreach ($rows as $row) {
+                if ($toConsume <= 0) break;
+
+                $currentQty = (int)($row[$colQtd] ?? 0);
+                if ($currentQty <= 0) continue;
+
+                $use = min($currentQty, $toConsume);
+                $remaining = $currentQty - $use;
+
+                // Calcula fator para ajustar valores proporcionalmente
+                $factor = ($currentQty > 0) ? ($remaining / $currentQty) : 0;
+
+                $newValBruto = isset($colValBruto, $row[$colValBruto]) ? round(((float)$row[$colValBruto]) * $factor) : null;
+                $newValLiq = isset($colValLiq, $row[$colValLiq]) ? round(((float)$row[$colValLiq]) * $factor) : null;
+
+                // Prepara update
+                $updateParts = [];
+                $updateParams = [];
+                $updateParts[] = "{$colQtd} = :newQtd";
+                $updateParams[':newQtd'] = $remaining;
+                if (!is_null($newValBruto)) { $updateParts[] = "{$colValBruto} = :newValBruto"; $updateParams[':newValBruto'] = $newValBruto; }
+                if (!is_null($newValLiq)) { $updateParts[] = "{$colValLiq} = :newValLiq"; $updateParams[':newValLiq'] = $newValLiq; }
+
+                // WHERE by id or exact match on all criteria and original values as fallback
+                if ($colId && isset($row[$colId])) {
+                    $whereId = "{$colId} = :idVal";
+                    $updateParams[':idVal'] = $row[$colId];
+                } else {
+                    // Fallback: identify by primary criteria and current values (riskier)
+                    $whereId = implode(' AND ', array_map(function($k){ return "{$k} = :orig_{$k}"; }, array_keys($params)));
+                    foreach ($params as $k => $v) {
+                        $updateParams[':orig_' . ltrim($k, ':')] = $v;
+                    }
+                }
+
+                $updateSql = "UPDATE {$this->tableName} SET " . implode(', ', $updateParts) . " WHERE " . $whereId;
+                $uStmt = $this->pdo->prepare($updateSql);
+                $uStmt->execute($updateParams);
+
+                $toConsume -= $use;
+            }
+
+            $this->pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            error_log("decrementQuantityByAggregate error: " . $e->getMessage());
+            return false;
+        }
+    }
 
     /**
      * Insere um lote de registros no banco de dados.
@@ -333,7 +490,9 @@ class IntermediacaoModel {
                     }
 
                     if (count($values) !== count($columns)) {
-                        $errors[] = "Linha " . ($index + 1) . ": número incorreto de colunas (" . count($values) . " de " . count($columns) . " esperadas).";
+                        $msg = "Linha " . ($index + 1) . ": número incorreto de colunas (" . count($values) . " de " . count($columns) . " esperadas).";
+                        error_log("IMPORT ERROR: " . $msg . " - valores=" . print_r($values, true));
+                        $errors[] = $msg;
                         continue;
                     }
 

@@ -1,0 +1,95 @@
+/* includes/responsive-table.css
+   Centralized responsive table/card layout and utilities for the app
+*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+:root{
+  --primary-color: #1a73e8;
+  --primary-dark: #0f4c81;
+  --secondary-color: #34a853;
+  --danger-color: #ea4335;
+  --action-color: #f97316;
+}
+
+/* General table padding and wrapping (applies to main data table and other responsive tables) */
+#data-table td, #data-table th,
+.preview-table th, .preview-table td,
+.users-table th, .users-table td {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    padding: 0.75rem 1rem;
+}
+
+/* Unified negotiate button */
+.btn-negociar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* Compact header hidden by default */
+#compact-header { display: none; }
+
+/* Responsive card layout: when screen is narrow, convert rows to stacked cards */
+@media (max-width: 1280px) {
+    /* Container tweaks */
+    #table-container, .preview-wrapper { overflow-x: hidden; }
+
+    /* Hide normal thead for the stacked view */
+    #data-table thead, .preview-table thead, .users-table thead { display: none; }
+
+    /* Make tables block-level so rows can be cards */
+    #data-table, #data-table tbody, .preview-table, .preview-table tbody, .users-table, .users-table tbody { display: block; }
+
+    /* Row becomes a card */
+    #data-table tr, .preview-table tr, .users-table tr {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        margin-bottom: 14px;
+        border: 1px solid #e6edf3;
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+        box-shadow: 0 2px 6px rgba(15,23,42,0.04);
+    }
+
+    /* Each cell is label / value pair */
+    #data-table td, .preview-table td, .users-table td {
+        display: grid;
+        grid-template-columns: 40% 60%;
+        align-items: center;
+        padding: 8px 10px;
+        border-bottom: 1px dashed #f1f5f9;
+        font-size: 0.95rem;
+    }
+    #data-table td:last-child, .preview-table td:last-child, .users-table td:last-child { border-bottom: none; }
+    #data-table td::before, .preview-table td::before, .users-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #374151;
+        padding-right: 8px;
+    }
+
+    /* Show compact header */
+    #compact-header { display: block; }
+
+    /* Hide less important columns on very small screens */
+    @media (max-width: 640px) {
+        td[data-label*="Emissor"] { display: none; }
+        td[data-label*="Data Compra"] { display: none; }
+    }
+}
+
+/* Small visual helpers */
+.preview-wrapper { overflow-x: hidden; }
+.table-wrapper { overflow-x: hidden; }
+
+/* Make sure tables have a maximum width on desktop */
+#data-table, .preview-table, .users-table { width: 100%; table-layout: auto; border-collapse: collapse; max-width: 100%; }

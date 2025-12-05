@@ -1,7 +1,8 @@
-<!-- app/view/admin/user_list.php -->
+<!-- app/view/admin/UserList.php -->
+<?php
+// Copiado de user_list.php para PascalCase refatorado
+?>
 <main>
-    <link rel="stylesheet" href="includes/responsive-table.css">
-
     <h2>Gerenciamento de Usuários</h2>
 
     <?php if (isset($message) && $message): ?>
@@ -13,11 +14,7 @@
     <?php if (empty($users)): ?>
         <p>Nenhum usuário encontrado no sistema.</p>
     <?php else: ?>
-        <div style="margin-bottom: 12px;">
-            <a href="index.php?controller=admin&action=addUser" class="btn btn-primary" style="background:#007bff;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;">Adicionar Usuário</a>
-        </div>
-        <div class="table-wrapper">
-        <table class="users-table data-table">
+        <table class="data-table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -30,10 +27,10 @@
             <tbody>
                 <?php foreach ($users as $u): ?>
                     <tr>
-                        <td data-label="ID"><?= htmlspecialchars($u['id']) ?></td>
-                        <td data-label="Nome de Usuário"><?= htmlspecialchars($u['username']) ?></td>
-                        <td data-label="CPF"><?= htmlspecialchars($u['cpf']) ?></td>
-                        <td data-label="Tipo"><?= htmlspecialchars($u['role']) ?></td>
+                        <td><?= htmlspecialchars($u['id']) ?></td>
+                        <td><?= htmlspecialchars($u['username']) ?></td>
+                        <td><?= htmlspecialchars($u['cpf']) ?></td>
+                        <td><?= htmlspecialchars($u['role']) ?></td>
                         <td>
                             <?php 
                                 $isCurrentUser = ($u['id'] == ($authManager->getCurrentUser()['id'] ?? null));
@@ -48,8 +45,8 @@
                                         Remover
                                     </button>
                                 </form>
-                                <!-- Botão de editar que abre o formulário de edição -->
-                                <a href="index.php?controller=admin&action=editUser&id=<?= $u['id'] ?>" class="action-btn btn-edit" style="margin-left:6px;padding:6px 10px;background:#ffc107;color:#000;border-radius:4px;text-decoration:none;">Editar</a>
+                                <!-- Em um sistema completo, haveria um botão para editar -->
+                                <button class="action-btn btn-edit" disabled>Editar</button>
                             <?php else: ?>
                                 <span style="color: #007bff; font-weight: bold;">(Conta Logada)</span>
                             <?php endif; ?>
@@ -58,6 +55,5 @@
                 <?php endforeach; ?>
             </tbody>
         </table>
-        </div>
     <?php endif; ?>
 </main>

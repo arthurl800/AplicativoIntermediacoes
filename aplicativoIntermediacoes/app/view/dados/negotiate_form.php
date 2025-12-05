@@ -199,22 +199,28 @@
                 await signInAnonymously(auth);
             }
             
-            // Monitora o estado de autenticação
+            // Monitora o estado de autenticação (não muda o comportamento do submit se o formulário pedir envio ao servidor)
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     userId = user.uid;
                     console.log("Firebase Auth OK. User ID:", userId);
-                    
-                    // CRÍTICO: ANEXAR LISTENER DE SUBMISSÃO APENAS QUANDO O USERID ESTÁ PRONTO
-                    if (negotiateForm) {
-                       negotiateForm.removeEventListener('submit', handleFormSubmit); // Remove duplicados
-                       negotiateForm.addEventListener('submit', handleFormSubmit);
-                       console.log("Form submit listener attached successfully.");
+
+                    // Se o formulário estiver configurado para submissão ao servidor (campo hidden server_side=1),
+                    // não anexamos o listener do Firebase que previne o envio padrão.
+                    const serverSide = negotiateForm ? negotiateForm.querySelector('input[name="server_side"]') : null;
+                    if (!serverSide) {
+                        if (negotiateForm) {
+                           negotiateForm.removeEventListener('submit', handleFormSubmit); // Remove duplicados
+                           negotiateForm.addEventListener('submit', handleFormSubmit);
+                           console.log("Form submit listener attached successfully (Firestore mode).");
+                        }
+                    } else {
+                        console.log("Form configured for server-side submit; skipping Firestore submit handler.");
                     }
-                    
+
                     // EXECUTAR CÁLCULO INICIAL
                     window.updateCalculations();
-                    
+
                 } else {
                     console.error("Autenticação falhou. Usuário não logado.");
                     if (submitButton) submitButton.disabled = true;
@@ -312,6 +318,9 @@
         <p class="mt-1 text-gray-800">
             <span class="font-bold">Produto/Tipo:</span> <?= htmlspecialchars($data['produto'] ?? 'N/A') ?> / <?= htmlspecialchars($data['estrategia'] ?? 'N/A') ?>
         </p>
+        <p class="mt-1 text-gray-800">
+            <span class="font-bold">Vencimento:</span> <?= htmlspecialchars($data['vencimento'] ?? ($data['vencimento_raw'] ?? 'N/A')) ?>
+        </p>
         <div class="flex flex-wrap gap-x-8 mt-2">
             <p>
                 <span class="font-bold text-sm">Taxa Original:</span> <span class="text-blue-600"><?= $taxa_display ?></span>
@@ -325,13 +334,19 @@
         </div>
     </div>
 
-    <form id="negotiate-form" action="javascript:void(0)" class="bg-white shadow-xl rounded-xl p-6 md:p-8 border border-gray-200">
+    <form id="negotiate-form" action="index.php?controller=dados&action=process_negotiation" method="POST" class="bg-white shadow-xl rounded-xl p-6 md:p-8 border border-gray-200">
         <!-- Campos Ocultos (Passam dados brutos do DB para JS) -->
         <input type="hidden" name="conta" value="<?= htmlspecialchars($data['conta'] ?? '') ?>">
         <input type="hidden" name="nome" value="<?= htmlspecialchars($data['nome'] ?? '') ?>">
+    <input type="hidden" name="cliente" value="<?= htmlspecialchars($data['nome'] ?? '') ?>">
         <input type="hidden" name="produto" value="<?= htmlspecialchars($data['produto'] ?? '') ?>">
+    <input type="hidden" name="tipo" value="<?= htmlspecialchars($data['produto'] ?? '') ?>">
         <input type="hidden" name="estrategia" value="<?= htmlspecialchars($data['estrategia'] ?? '') ?>">
+    <input type="hidden" name="emissor" value="<?= htmlspecialchars($data['emissor'] ?? ($data['CNPJ'] ?? '')) ?>">
+    <input type="hidden" name="vencimento" value="<?= htmlspecialchars($data['vencimento_raw'] ?? ($data['vencimento'] ?? '')) ?>">
         <input type="hidden" id="valor_bruto_importado" name="valor_bruto_importado" value="<?= htmlspecialchars($data['valor_bruto'] ?? 0) ?>">
+        <!-- Indica que o formulário deve ser submetido ao servidor (desabilita handler Firestore) -->
+        <input type="hidden" name="server_side" value="1">
         <input type="hidden" id="quantidade_maxima" value="<?= $quantidade_max ?>">
 
         <!-- Quantidade a Negociar -->

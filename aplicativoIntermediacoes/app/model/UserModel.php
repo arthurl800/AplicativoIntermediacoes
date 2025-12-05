@@ -25,7 +25,7 @@ class UserModel {
      * @param string $role
      * @return bool Retorna true em caso de sucesso ou false em caso de falha.
      */
-    public function create(string $username, string $password, string $cpf = null, string $role = 'user'): bool {
+    public function create(string $username, string $password, ?string $cpf = null, string $role = 'user'): bool {
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
     $sql = "INSERT INTO {$this->table} (Nome, Senha, CPF, Funcao) VALUES (:username, :password_hash, :cpf, :role)";
@@ -84,6 +84,50 @@ class UserModel {
             return $stmt->execute([':id' => $id]);
         } catch (PDOException $e) {
             error_log("Erro ao deletar usuário: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Busca usuário por ID.
+     * @param int $id
+     * @return array|null
+     */
+    public function findById(int $id): ?array {
+        $sql = "SELECT id, Nome as username, CPF as cpf, Funcao as role FROM {$this->table} WHERE id = :id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Atualiza os dados de um usuário. Se $password for fornecida, atualiza também a senha.
+     * @param int $id
+     * @param string $username
+     * @param string|null $password
+     * @param string|null $cpf
+     * @param string|null $role
+     * @return bool
+     */
+    public function update(int $id, string $username, ?string $password = null, ?string $cpf = null, ?string $role = null): bool {
+        $parts = [];
+        $params = [':id' => $id, ':username' => $username];
+
+        $parts[] = "Nome = :username";
+        if (!is_null($cpf)) { $parts[] = "CPF = :cpf"; $params[':cpf'] = $cpf; }
+        if (!is_null($role)) { $parts[] = "Funcao = :role"; $params[':role'] = $role; }
+        if (!is_null($password) && $password !== '') {
+            $parts[] = "Senha = :senha";
+            $params[':senha'] = password_hash($password, PASSWORD_DEFAULT);
+        }
+
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $parts) . " WHERE id = :id";
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($params);
+        } catch (PDOException $e) {
+            error_log("Erro ao atualizar usuário: " . $e->getMessage());
             return false;
         }
     }

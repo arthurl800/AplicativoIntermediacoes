@@ -1,0 +1,23 @@
+# Ignore local configuration with credentials
+/config/database.php
+
+# Ignore SQLite DB if accidentally present
+app_data.db
+
+# Composer vendor
+/vendor/
+
+# Node modules (if any)
+/node_modules/
+
+# PHPStorm, VSCode and system files
+/.idea/
+.vscode/
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
