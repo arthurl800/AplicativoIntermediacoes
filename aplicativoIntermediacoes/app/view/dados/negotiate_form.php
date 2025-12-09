@@ -304,7 +304,7 @@
         // Desescalando os valores numéricos para exibição no cabeçalho
         $vl_bruto_display = number_format(($data['valor_bruto'] ?? 0) / 100, 2, ',', '.');
         $vl_liquido_display = number_format(($data['valor_liquido'] ?? 0) / 100, 2, ',', '.');
-        $taxa_display = number_format(($data['taxa_emissao'] ?? 0) / 100, 4, ',', '.') . ' %';
+        $taxa_display = number_format(($data['taxa_emissao'] ?? 0) / 1, 2, ',', '.') . ' %';
         $quantidade_max = htmlspecialchars($data['quantidade'] ?? 0);
     ?>
 
@@ -339,6 +339,7 @@
         <input type="hidden" name="conta" value="<?= htmlspecialchars($data['conta'] ?? '') ?>">
         <input type="hidden" name="nome" value="<?= htmlspecialchars($data['nome'] ?? '') ?>">
     <input type="hidden" name="cliente" value="<?= htmlspecialchars($data['nome'] ?? '') ?>">
+        <input type="hidden" name="ativo" value="<?= htmlspecialchars($data['ativo'] ?? '') ?>">
         <input type="hidden" name="produto" value="<?= htmlspecialchars($data['produto'] ?? '') ?>">
     <input type="hidden" name="tipo" value="<?= htmlspecialchars($data['produto'] ?? '') ?>">
         <input type="hidden" name="estrategia" value="<?= htmlspecialchars($data['estrategia'] ?? '') ?>">

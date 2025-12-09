@@ -78,6 +78,7 @@ class DataController {
         $data = [
             'conta' => $_GET['conta'] ?? ($_GET['Conta'] ?? ''),
             'nome' => $_GET['nome'] ?? ($_GET['cliente'] ?? ($_GET['Nome'] ?? '')),
+            'ativo' => $_GET['ativo'] ?? ($_GET['Ativo'] ?? ''),  // Código do ativo (ex: LCA-25A04157044)
             'produto' => $_GET['produto'] ?? ($_GET['tipo'] ?? ($_GET['Produto'] ?? '')),
             'estrategia' => $_GET['estrategia'] ?? ($_GET['indexador'] ?? ($_GET['Estrategia'] ?? '')),
             'emissor' => $_GET['emissor'] ?? ($_GET['CNPJ'] ?? ($_GET['Emissor'] ?? '')),
@@ -127,6 +128,7 @@ class DataController {
         // Recebe dados do POST
         $conta = $_POST['conta'] ?? '';
         $cliente = $_POST['cliente'] ?? '';
+        $ativo = $_POST['ativo'] ?? '';  // Código específico do ativo (ex: LCA-25A04157044)
         $tipo = $_POST['tipo'] ?? '';
         $quantidade = (float)($_POST['quantidade'] ?? 0);
         $quantidade_negociada = (int)($_POST['quantidade_negociada'] ?? $quantidade);
@@ -190,6 +192,7 @@ class DataController {
         try {
             $criteria = [
                 'conta' => $conta,
+                'ativo' => $ativo,          // Código específico do ativo (ex: LCA-25A04157044)
                 'produto' => $tipo,
                 'emissor' => $_POST['emissor'] ?? null,
                 'vencimento' => $_POST['vencimento'] ?? null,

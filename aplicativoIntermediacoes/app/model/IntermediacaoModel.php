@@ -229,7 +229,7 @@ class IntermediacaoModel {
 
     /**
      * Retorna uma tabela agregada de investimentos negociáveis por cliente.
-     * Agrupa por: Conta, Nome, Produto, Estrategia, Emissor, Vencimento.
+     * Agrupa por: Conta, Nome, Ativo (código específico), Produto, Estrategia, Emissor, Vencimento.
      * Calcula SUM para Valores e Quantidade, e MAX para Taxas e Datas.
      * @param int $limit Limite de registros a retornar.
      * @return array
@@ -248,7 +248,10 @@ class IntermediacaoModel {
     // Lista de variantes comuns para cada campo lógico
     $conta = $find(['Conta', 'Codigo_Cliente', 'CodigoCliente', 'Conta_Cliente']);
     $nome = $find(['Nome', 'Nome_Corretora', 'Cliente', 'Nome_Cliente', 'NomeCliente']);
-    $tipo = $find(['Produto', 'Ativo', 'Nome_Produto', 'Titulo']);
+    // Primeiro tenta encontrar "Ativo" (código específico do título, ex: LCA-25A04157044)
+    $ativo = $find(['Ativo', 'Codigo_Ativo', 'CodigoAtivo', 'Ativo_Codigo']);
+    // Depois "Produto" (tipo de produto, ex: LCA, CDB, etc)
+    $tipo = $find(['Produto', 'Nome_Produto', 'Titulo', 'Tipo_Ativo']);
     $estrategia = $find(['Estrategia', 'Tipo_Plano', 'Tipo_Operacao', 'Indexador']);
     $emissor = $find(['Emissor', 'CNPJ', 'Emitente']);
     $vencimento = $find(['Vencimento', 'Data_Vencimento', 'Vencimento_Data']);
@@ -260,6 +263,8 @@ class IntermediacaoModel {
 
     if ($conta) { $groupParts[] = $conta; $selectParts[] = "{$conta} AS Conta"; }
     if ($nome) { $groupParts[] = $nome; $selectParts[] = "{$nome} AS Nome"; }
+    // CRÍTICO: Agrupa por Ativo específico (código) para não misturar títulos diferentes com mesma data
+    if ($ativo) { $groupParts[] = $ativo; $selectParts[] = "{$ativo} AS Ativo"; }
     if ($tipo) { $groupParts[] = $tipo; $selectParts[] = "{$tipo} AS Produto"; }
     if ($estrategia) { $groupParts[] = $estrategia; $selectParts[] = "{$estrategia} AS Estrategia"; }
     if ($emissor) { $groupParts[] = $emissor; $selectParts[] = "{$emissor} AS Emissor"; }
@@ -341,7 +346,8 @@ class IntermediacaoModel {
         };
 
         $colConta = $find(['Conta', 'Codigo_Cliente', 'CodigoCliente']);
-        $colProduto = $find(['Produto', 'Ativo']);
+        $colProduto = $find(['Produto', 'Nome_Produto', 'Titulo', 'Tipo_Ativo']);
+        $colAtivo = $find(['Ativo', 'Codigo_Ativo', 'CodigoAtivo', 'Ativo_Codigo']);
         $colEmissor = $find(['Emissor', 'CNPJ', 'Emitente']);
         $colVenc = $find(['Vencimento', 'Data_Vencimento', 'Vencimento']);
         $colQtd = $find(['Quantidade', 'Qtd', 'QTD']);
@@ -359,6 +365,7 @@ class IntermediacaoModel {
         $where = [];
         $params = [];
         if (!empty($colConta) && !empty($criteria['conta'])) { $where[] = "{$colConta} = :conta"; $params[':conta'] = $criteria['conta']; }
+        if (!empty($colAtivo) && !empty($criteria['ativo'])) { $where[] = "{$colAtivo} = :ativo"; $params[':ativo'] = $criteria['ativo']; }
         if (!empty($colProduto) && !empty($criteria['produto'])) { $where[] = "{$colProduto} = :produto"; $params[':produto'] = $criteria['produto']; }
         if (!empty($colEmissor) && !empty($criteria['emissor'])) { $where[] = "{$colEmissor} = :emissor"; $params[':emissor'] = $criteria['emissor']; }
         if (!empty($colVenc) && !empty($criteria['vencimento'])) { $where[] = "{$colVenc} = :venc"; $params[':venc'] = $criteria['vencimento']; }
