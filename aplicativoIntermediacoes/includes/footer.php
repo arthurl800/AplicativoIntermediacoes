@@ -1,7 +1,7 @@
-</main>
+    </main>
 
-    <footer style="text-align: center; padding: 10px; background-color: #333; color: white;">
-        <p style="margin: 0;">&copy; <?= date('Y') ?> Gerenciamento Financeiro | 2025 | Austral</p>
+    <footer>
+        <p>&copy; <?= date('Y') ?> Sistema de Intermediações Financeiras | Desenvolvido com ❤️ | v1.0</p>
     </footer>
 </body>
 </html>

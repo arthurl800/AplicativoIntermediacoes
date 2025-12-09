@@ -130,48 +130,99 @@ class DataController {
         $cliente = $_POST['cliente'] ?? '';
         $ativo = $_POST['ativo'] ?? '';  // Código específico do ativo (ex: LCA-25A04157044)
         $tipo = $_POST['tipo'] ?? '';
+        $estrategia = $_POST['estrategia'] ?? '';
         $quantidade = (float)($_POST['quantidade'] ?? 0);
         $quantidade_negociada = (int)($_POST['quantidade_negociada'] ?? $quantidade);
+        
+        // Valores do vendedor (desescalados em R$)
         $valor_bruto_saida = (float)($_POST['valor_bruto_saida'] ?? 0);
         $taxa_saida = (float)($_POST['taxa_saida'] ?? 0);
-        $valor_bruto_entrada = (float)($_POST['valor_bruto_entrada'] ?? 0);
+        $valor_liquido_saida = (float)($_POST['valor_liquido_saida'] ?? 0);
+        
+        // Valores do comprador (desescalados em R$)
+        $conta_comprador = $_POST['conta_entrada'] ?? '';
+        $nome_comprador = $_POST['nome_entrada'] ?? '';
         $taxa_entrada = (float)($_POST['taxa_entrada'] ?? 0);
+        $valor_bruto_entrada = (float)($_POST['valor_bruto_entrada'] ?? 0);
+        
+        // Valores de assessor (desescalados em R$)
+        $valor_plataforma = (float)($_POST['valor_plataforma'] ?? 0);
 
         // Operador atual
         $auth = new AuthManager();
         $operator = $auth->getCurrentUser();
 
         // Cálculos
-        // corretagem = valor_bruto_entrada - valor_bruto_saida
         $corretagem = $valor_bruto_entrada - $valor_bruto_saida;
-        // ROA (%) = (corretagem / valor_bruto_entrada) * 100
         $roa = ($valor_bruto_entrada != 0) ? ($corretagem / $valor_bruto_entrada) * 100 : 0;
-        // Retorno ao vendedor = valor_bruto_saida - corretagem? (interpretação: quanto restou ao vendedor após corretagem)
-        $retorno_vendedor_valor = $valor_bruto_saida - $corretagem;
-        // Porcentagem do retorno em relação ao valor bruto original importado (se fornecido)
+        
+        // Cálculos do vendedor
+        $preco_unitario_saida = ($quantidade_negociada > 0) ? ($valor_liquido_saida / $quantidade_negociada) : 0;
         $valor_bruto_importado = (float)($_POST['valor_bruto_importado'] ?? $valor_bruto_saida);
-        $retorno_vendedor_pct = ($valor_bruto_importado != 0) ? ($retorno_vendedor_valor / $valor_bruto_importado) * 100 : 0;
+        $ganho_saida = $valor_liquido_saida - ($valor_bruto_importado / 100); // Converte centavos para reais
+        $rentabilidade_saida = ($valor_plataforma > 0) ? ($ganho_saida / $valor_plataforma) * 100 : 0;
+        
+        // Cálculos do comprador
+        $preco_unitario_entrada = ($quantidade_negociada > 0) ? ($valor_bruto_entrada / $quantidade_negociada) : 0;
+        
+        // Cálculos do assessor
+        $corretagem_assessor = $corretagem;
+        $roa_assessor = $roa;
+        
+        // Cálculos do retorno ao vendedor
+        $retorno_vendedor_valor = $valor_liquido_saida;
+        $retorno_vendedor_pct = ($valor_bruto_saida > 0) ? ($valor_liquido_saida / $valor_bruto_saida) * 100 : 0;
 
-        $resultData = [
-            'conta' => $conta,
-            'cliente' => $cliente,
-            'tipo' => $tipo,
-            'quantidade' => $quantidade,
-            'valor_bruto_saida' => $valor_bruto_saida,
-            'taxa_saida' => $taxa_saida,
-            'valor_bruto_entrada' => $valor_bruto_entrada,
-            'taxa_entrada' => $taxa_entrada,
-            'corretagem' => $corretagem,
-            'roa' => $roa,
-            'retorno_vendedor_valor' => $retorno_vendedor_valor,
-            'retorno_vendedor_pct' => $retorno_vendedor_pct,
-            'operator' => $operator
-        ];
-
-        // Persiste a negociação
+        // Persiste a negociação na tabela NEGOCIACOES com todos os detalhes
         require_once dirname(dirname(__DIR__)) . '/app/model/NegociacaoModel.php';
         $negModel = new NegociacaoModel();
         $savedId = $negModel->save([
+            'conta_vendedor' => $conta,
+            'nome_vendedor' => $cliente,
+            'produto' => $tipo,
+            'estrategia' => $estrategia,
+            'quantidade_negociada' => $quantidade_negociada,
+            'valor_bruto_importado_raw' => $valor_bruto_importado,
+            'taxa_saida' => $taxa_saida,
+            'valor_bruto_saida' => $valor_bruto_saida,
+            'valor_liquido_saida' => $valor_liquido_saida,
+            'preco_unitario_saida' => $preco_unitario_saida,
+            'ganho_saida' => $ganho_saida,
+            'rentabilidade_saida' => $rentabilidade_saida,
+            'conta_comprador' => $conta_comprador,
+            'nome_comprador' => $nome_comprador,
+            'taxa_entrada' => $taxa_entrada,
+            'valor_bruto_entrada' => $valor_bruto_entrada,
+            'preco_unitario_entrada' => $preco_unitario_entrada,
+            'valor_plataforma' => $valor_plataforma,
+            'corretagem_assessor' => $corretagem_assessor,
+            'roa_assessor' => $roa_assessor,
+        ]);
+
+        // Após salvar a negociação, copia dados negociados para INTERMEDIACOES_TABLE_NEGOCIADA
+        // (decrementando quantidades e filtrando qty > 0)
+        try {
+            require_once dirname(dirname(__DIR__)) . '/app/model/IntermediacoesNegociadaModel.php';
+            $negModel2 = new IntermediacoesNegociadaModel();
+            
+            $criteria = [
+                'conta' => $conta,
+                'ativo' => $ativo,
+                'produto' => $tipo,
+                'emissor' => $_POST['emissor'] ?? null,
+                'vencimento' => $_POST['vencimento'] ?? null,
+            ];
+            
+            // Copia registros decrementados para a tabela NEGOCIADA
+            $ok = $negModel2->copyNegotiatedRecords($criteria, $quantidade_negociada);
+            if (!$ok) {
+                error_log("Warning: copyNegotiatedRecords retornou false para negociação {$savedId}");
+            }
+        } catch (Exception $e) {
+            error_log("Exception ao copiar registros negociados: " . $e->getMessage());
+        }
+
+        $resultData = [
             'conta' => $conta,
             'cliente' => $cliente,
             'tipo' => $tipo,
@@ -179,38 +230,40 @@ class DataController {
             'quantidade_negociada' => $quantidade_negociada,
             'valor_bruto_saida' => $valor_bruto_saida,
             'taxa_saida' => $taxa_saida,
+            'valor_liquido_saida' => $valor_liquido_saida,
             'valor_bruto_entrada' => $valor_bruto_entrada,
             'taxa_entrada' => $taxa_entrada,
             'corretagem' => $corretagem,
             'roa' => $roa,
+            'preco_unitario_saida' => $preco_unitario_saida,
+            'ganho_saida' => $ganho_saida,
+            'rentabilidade_saida' => $rentabilidade_saida,
             'retorno_vendedor_valor' => $retorno_vendedor_valor,
             'retorno_vendedor_pct' => $retorno_vendedor_pct,
-            'operador' => $operator['username'] ?? null
-        ]);
-
-        // Após salvar a negociação, atualiza quantidades na tabela de intermediações
-        try {
-            $criteria = [
-                'conta' => $conta,
-                'ativo' => $ativo,          // Código específico do ativo (ex: LCA-25A04157044)
-                'produto' => $tipo,
-                'emissor' => $_POST['emissor'] ?? null,
-                'vencimento' => $_POST['vencimento'] ?? null,
-            ];
-            // Tenta decrementar; loga sucesso/fracasso
-            $ok = $this->intermediacaoModel->decrementQuantityByAggregate($criteria, $quantidade_negociada);
-            if (!$ok) {
-                error_log("Warning: decrementQuantityByAggregate returned false for saved negotiation {$savedId}");
-            }
-        } catch (Exception $e) {
-            error_log("Exception while decrementing quantities after negotiation: " . $e->getMessage());
-        }
-
+            'operator' => $operator
+        ];
         $resultData['saved_id'] = $savedId;
 
         $base_dir = dirname(dirname(__DIR__));
         include $base_dir . '/includes/header.php';
         include $base_dir . '/app/view/dados/negotiate_result.php';
+        include $base_dir . '/includes/footer.php';
+    }
+
+    /**
+     * Exibe os dados da tabela INTERMEDIACOES_TABLE_NEGOCIADA
+     * (registros com quantidades atualizadas pós-negociação, filtrados por qty > 0)
+     */
+    public function visualizar_negociadas() {
+        $base_dir = dirname(dirname(__DIR__));
+        
+        require_once $base_dir . '/app/model/IntermediacoesNegociadaModel.php';
+        $negModel = new IntermediacoesNegociadaModel();
+        
+        $data = $negModel->getAllNegotiated(200);
+        
+        include $base_dir . '/includes/header.php';
+        include $base_dir . '/app/view/dados/visualizacao_negociadas.php';
         include $base_dir . '/includes/footer.php';
     }
 }

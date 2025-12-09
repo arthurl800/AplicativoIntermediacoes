@@ -1,0 +1,749 @@
+/* assets/css/main.css */
+
+/* 1. Reset e Variáveis Globais */
+/* Cores principais: Verde, Secundária: Dourado */
+:root {
+    --primary-color: #28a745; /* Verde principal */
+    --primary-dark: #218838; /* Verde mais escuro */
+    --secondary-color: #FFC107; /* Dourado/Amarelo */
+    --secondary-dark: #e0a800; /* Dourado mais escuro */
+    --success-color: #28a745; /* Mantém verde para sucesso */
+    --danger-color: #dc3545; /* Vermelho para perigo */
+    --warning-color: #ffc107; /* Amarelo para aviso (mantém dourado) */
+    --info-color: #17a2b8; /* Azul para informação */
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --background-color: #f4f7fc;
+    --text-color: #333;
+    --border-color: #dee2e6;
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --border-radius: 8px;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 16px;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex-grow: 1;
+    width: 100%;
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* 2. Header e Navegação */
+.header {
+    background-color: var(--dark-color);
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.8em;
+    color: var(--primary-color); /* Título principal em verde */
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav a {
+    color: white;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    transition: background-color 0.3s, transform 0.2s;
+    font-weight: 500;
+}
+
+.nav a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    margin-left: 20px;
+    gap: 15px;
+}
+
+.user-info span {
+    color: #ccc;
+    white-space: nowrap;
+}
+
+/* 3. Botões */
+.btn {
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-block;
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.btn-primary { background-color: var(--primary-color); color: white; }
+.btn-primary:hover { background-color: var(--primary-dark); }
+
+.btn-secondary { background-color: var(--secondary-color); color: white; }
+.btn-secondary:hover { background-color: var(--secondary-dark); }
+
+.btn-success { background-color: var(--success-color); color: white; }
+.btn-success:hover { background-color: #218838; }
+
+.btn-danger, .btn-delete { background-color: var(--danger-color); color: white; }
+.btn-danger:hover, .btn-delete:hover { background-color: #c82333; }
+
+.btn-warning, .btn-edit { background-color: var(--secondary-color); color: var(--dark-color); } /* Edit usa dourado */
+.btn-warning:hover, .btn-edit:hover { background-color: var(--secondary-dark); }
+
+.btn-info { background-color: var(--info-color); color: white; }
+.btn-info:hover { background-color: #138496; }
+
+.logout-btn {
+    background-color: var(--danger-color);
+    padding: 8px 15px;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+    background-color: #c82333;
+}
+
+/* 4. Formulários */
+.form-container {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.form-container h2 {
+    text-align: center;
+    color: var(--text-color);
+    margin-bottom: 25px;
+    border-bottom: 3px solid var(--primary-color); /* Borda mais grossa */
+    padding-bottom: 10px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #555;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"],
+.form-group input[type="file"],
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    outline: none;
+}
+
+/* 5. Tabelas */
+.table-wrapper {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    overflow-x: auto;
+    margin-bottom: 30px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background-color: var(--primary-dark); /* Cabeçalho da tabela um verde mais escuro */
+    color: white;
+}
+
+.data-table th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+}
+
+.data-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+    background-color: #f1f5f9;
+}
+
+.data-table td {
+    padding: 12px 15px;
+    vertical-align: middle;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    margin-right: 5px;
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+/* Botão de Negociar (destaque) */
+.btn-negotiate {
+    background-color: var(--secondary-color);
+    color: var(--dark-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 8px 15px;
+}
+.btn-negotiate:hover { background-color: var(--secondary-dark); }
+
+
+/* 6. Componentes Específicos (Dashboard, Auditoria) */
+
+/* Dashboard */
+.dashboard-container {
+    padding: 20px;
+}
+
+.dashboard-container h1 {
+    color: var(--text-color);
+    margin-bottom: 30px;
+    text-align: center;
+    font-size: 2.2em;
+    font-weight: 700;
+}
+
+.resumo-executivo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.card-kpi {
+    background: white;
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    text-align: center;
+    border-left: 5px solid var(--primary-color); /* Borda lateral verde */
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-kpi:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.card-kpi h3 {
+    margin: 0 0 10px 0;
+    color: #666;
+    font-size: 1em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-valor {
+    margin: 0;
+    font-size: 2.2em;
+    font-weight: 700; /* Valor KPI em verde */
+    color: var(--primary-color);
+}
+
+.graficos-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.grafico-box {
+    background: white;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.grafico-full {
+    grid-column: 1 / -1;
+}
+
+.grafico-box h3 {
+    margin-top: 0;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--primary-color); /* Borda verde */
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.grafico-box canvas {
+    max-height: 350px;
+}
+
+.export-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+/* Auditoria */
+.auditoria-container {
+    padding: 20px;
+}
+
+.auditoria-container h1 {
+    color: var(--text-color);
+    margin-bottom: 30px;
+    text-align: center;
+    font-size: 2.2em;
+    font-weight: 700;
+}
+
+.badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-align: center;
+}
+
+.badge-insert { background-color: #d4edda; color: #155724; }
+.badge-update { background-color: #fff3cd; color: #856404; }
+.badge-delete { background-color: #f8d7da; color: #721c24; }
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin: 30px 0;
+}
+
+.pagination-info {
+    color: #666;
+    font-weight: 500;
+}
+
+.back-link {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.back-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.back-link a:hover {
+    text-decoration: underline;
+}
+
+/* Mensagens de feedback */
+.message {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+}
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.message.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+.message.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* Classe para ícones de ordenação */
+.sort-icon {
+    margin-left: 5px;
+    opacity: 0.3;
+}
+.sortable:hover .sort-icon {
+    opacity: 0.6;
+}
+.sortable.asc .sort-icon-up,
+.sortable.desc .sort-icon-down {
+    opacity: 1;
+    color: white;
+}
+
+/* Estilo para o container da tabela, garantindo rolagem e cabeçalho fixo */
+.table-scroll-container {
+    max-height: 70vh; /* Altura máxima para rolagem vertical */
+    overflow-y: auto; /* Permite rolagem vertical */
+    overflow-x: hidden; /* Evita rolagem horizontal */
+    position: relative;
+}
+
+/* Compact header for mobile */
+.compact-header {
+    display: none; /* Hidden by default */
+    background-color: var(--primary-dark);
+    color: white;
+    padding: 10px 20px;
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+.compact-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+/* 7. Responsividade */
+
+/* Tabelas Responsivas */
+@media (max-width: 992px) {
+    .data-table thead {
+        display: none; /* Esconde o cabeçalho em telas menores */
+    }
+
+    .data-table, .data-table tbody, .data-table tr, .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .data-table tr {
+        margin-bottom: 15px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 10px;
+        background: #fff;
+    }
+
+    .data-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border: none;
+        border-bottom: 1px dashed #eee;
+        text-align: right; /* Alinha o valor à direita */
+    }
+
+    .data-table td:last-child {
+        border-bottom: none;
+    }
+
+    .data-table td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        color: var(--text-color);
+        text-align: left; /* Alinha o label à esquerda */
+        padding-right: 10px;
+    }
+}
+
+/* Layout Geral */
+@media (max-width: 1280px) {
+    .header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .nav {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    main {
+        padding: 15px;
+        margin: 15px auto;
+    }
+
+    .header h1 {
+        font-size: 1.2em;
+    }
+
+    .resumo-executivo {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .graficos-container {
+        grid-template-columns: 1fr;
+    }
+
+    .export-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 576px) {
+    .resumo-executivo {
+        grid-template-columns: 1fr;
+    }
+
+    .user-info {
+        flex-direction: column;
+        gap: 10px;
+        margin-left: 0;
+        width: 100%;
+        align-items: stretch;
+    }
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 20px;
+    background-color: var(--dark-color);
+    color: white;
+    flex-shrink: 0;
+    margin-top: auto;
+}
+
+.footer p {
+    margin: 0;
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+/* Estilos para o formulário de negociação (negotiate_form.php) */
+.negotiation-form-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.negotiation-form-container h2 {
+    text-align: center;
+    color: var(--text-color);
+    margin-bottom: 25px;
+    border-bottom: 3px solid var(--primary-color);
+    padding-bottom: 10px;
+}
+
+.negotiation-summary {
+    background-color: var(--light-color);
+    border-left: 5px solid var(--info-color);
+    padding: 15px;
+    margin-bottom: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.negotiation-summary p {
+    margin-bottom: 5px;
+}
+
+.negotiation-summary .font-bold {
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.negotiation-summary .text-info { color: var(--info-color); }
+.negotiation-summary .text-success { color: var(--success-color); }
+.negotiation-summary .text-primary { color: var(--primary-color); }
+
+.negotiation-summary-item-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.form-section-title {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-grid .form-col {
+    /* Flex item for grid */
+}
+
+.form-label-readonly {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #666;
+}
+
+.form-divider {
+    border: 0;
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 30px 0;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+/* Custom Modal Styles */
+.modal-custom {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-header {
+    padding: 15px 20px;
+    font-size: 1.2em;
+    font-weight: 700;
+    color: white;
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+}
+
+.modal-header-success { background-color: var(--success-color); }
+.modal-header-error { background-color: var(--danger-color); }
+.modal-header-info { background-color: var(--info-color); }
+
+.modal-content {
+    padding: 20px;
+}
+
+.modal-content p {
+    color: var(--text-color);
+    margin-bottom: 15px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+/* Link button style */
+.btn-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.btn-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.form-actions-bottom {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+/* Generic text alignment and style classes */
+.text-align-right { text-align: right; }
+.text-align-center { text-align: center; }
+.text-strong { font-weight: 600; }
+.text-muted { color: #6c757d; } /* Secondary color for muted text */
+.text-info-color { color: var(--info-color); }
+.text-success-color { color: var(--success-color); }
+.text-danger-color { color: var(--danger-color); }
+
+/* Margin top utility */
+.mt-4 {
+    margin-top: 1.5rem; /* Equivalent to Tailwind's mt-6 or mt-4 */
+}

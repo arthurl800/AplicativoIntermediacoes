@@ -1,20 +1,18 @@
 <!-- app/view/admin/user_list.php -->
 <main>
-    <link rel="stylesheet" href="includes/responsive-table.css">
-
     <h2>Gerenciamento de Usuários</h2>
 
     <?php if (isset($message) && $message): ?>
-        <div style="padding: 10px; margin-bottom: 15px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px;">
+        <div class="message success">
             <?= htmlspecialchars($message) ?>
         </div>
     <?php endif; ?>
 
     <?php if (empty($users)): ?>
-        <p>Nenhum usuário encontrado no sistema.</p>
+        <p class="message info">Nenhum usuário encontrado no sistema.</p>
     <?php else: ?>
         <div style="margin-bottom: 12px;">
-            <a href="index.php?controller=admin&action=addUser" class="btn btn-primary" style="background:#007bff;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;">Adicionar Usuário</a>
+            <a href="index.php?controller=admin&action=addUser" class="btn btn-primary">Adicionar Usuário</a>
         </div>
         <div class="table-wrapper">
         <table class="users-table data-table">
@@ -42,14 +40,14 @@
                             <?php if (!$isCurrentUser): ?>
                                 <!-- Formulário para deletar o usuário -->
                                 <form action="index.php?controller=admin&action=deleteUser" method="POST" style="display: inline;">
-                                    <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                                    <button type="submit" class="action-btn btn-delete" 
+                                    <input type="hidden" name="id" value="<?= $u['id'] ?>"> 
+                                    <button type="submit" class="action-btn btn-delete"
                                             onclick="return confirm('Tem certeza que deseja remover o usuário \'<?= htmlspecialchars($u['username']) ?>\'?');">
                                         Remover
                                     </button>
                                 </form>
                                 <!-- Botão de editar que abre o formulário de edição -->
-                                <a href="index.php?controller=admin&action=editUser&id=<?= $u['id'] ?>" class="action-btn btn-edit" style="margin-left:6px;padding:6px 10px;background:#ffc107;color:#000;border-radius:4px;text-decoration:none;">Editar</a>
+                                <a href="index.php?controller=admin&action=editUser&id=<?= $u['id'] ?>" class="action-btn btn-edit">Editar</a>
                             <?php else: ?>
                                 <span style="color: #007bff; font-weight: bold;">(Conta Logada)</span>
                             <?php endif; ?>

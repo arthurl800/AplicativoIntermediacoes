@@ -1,0 +1,141 @@
+<?php
+require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
+require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
+require_once dirname(dirname(__DIR__)) . '/app/model/AuditoriaModel.php';
+
+class RelatorioController {
+    private $authManager;
+    private $auditoriaModel;
+
+    public function __construct() {
+        $this->authManager = new AuthManager();
+        $this->auditoriaModel = new AuditoriaModel();
+        if (!$this->authManager->isLoggedIn()) {
+            header('Location: index.php?controller=auth&action=login');
+            exit;
+        }
+    }
+
+    public function dashboard() {
+        $base_dir = dirname(dirname(__DIR__));
+        $resumo = $this->auditoriaModel->getResumoExecutivo();
+        $porOperador = $this->auditoriaModel->getEstatisticasPorOperador();
+        $porProduto = $this->auditoriaModel->getEstatisticasPorProduto();
+        $porData = $this->auditoriaModel->getEstatisticasPorData(30);
+        
+        $dataOperadores = json_encode(array(
+            'labels' => array_column($porOperador, 'operador'),
+            'negociacoes' => array_column($porOperador, 'total_negociacoes'),
+            'valores' => array_column($porOperador, 'valor_saida_total')
+        ));
+        
+        $dataProdutos = json_encode(array(
+            'labels' => array_column($porProduto, 'Produto'),
+            'negociacoes' => array_column($porProduto, 'total_negociacoes'),
+            'valores' => array_column($porProduto, 'valor_saida_total')
+        ));
+        
+        $labels_dia = array();
+        $valores_dia = array();
+        $negs_dia = array();
+        
+        foreach ($porData as $d) {
+            $labels_dia[] = date('d/m', strtotime($d['data_negociacao']));
+            $valores_dia[] = $d['valor_saida_total'];
+            $negs_dia[] = $d['total_negociacoes'];
+        }
+        
+        $dataPorDia = json_encode(array(
+            'labels' => $labels_dia,
+            'valores' => $valores_dia,
+            'negociacoes' => $negs_dia
+        ));
+        
+        include $base_dir . '/includes/header.php';
+        include $base_dir . '/app/view/relatorio/dashboard.php';
+        include $base_dir . '/includes/footer.php';
+    }
+
+    public function auditoria() {
+        $base_dir = dirname(dirname(__DIR__));
+        $limit = 50;
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $offset = ($page - 1) * $limit;
+        $auditoria = $this->auditoriaModel->getAuditoriaCompleta($limit, $offset);
+        
+        include $base_dir . '/includes/header.php';
+        include $base_dir . '/app/view/relatorio/auditoria.php';
+        include $base_dir . '/includes/footer.php';
+    }
+
+    public function exportarCSV() {
+        $dataInicio = isset($_GET['data_inicio']) ? $_GET['data_inicio'] : date('Y-m-d', strtotime('-30 days'));
+        $dataFim = isset($_GET['data_fim']) ? $_GET['data_fim'] : date('Y-m-d');
+        
+        if (!$this->validarData($dataInicio) || !$this->validarData($dataFim)) {
+            die('Datas inválidas');
+        }
+        
+        $negociacoes = $this->getNegociacoesPorPeriodo($dataInicio, $dataFim);
+        
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="relatorio_negociacoes_' . date('Ymd_His') . '.csv"');
+        
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        
+        fputcsv($output, array(
+            'ID', 'Data Registro', 'Conta Vendedor', 'Nome Vendedor', 'Produto', 'Estrategia',
+            'Quantidade Negociada', 'Valor Bruto Saída (R$)', 'Valor Líquido Saída (R$)',
+            'Preço Unitário Saída (R$)', 'Ganho Saída (R$)', 'Rentabilidade Saída (%)',
+            'Conta Comprador', 'Nome Comprador', 'Taxa Entrada (%)', 'Valor Bruto Entrada (R$)',
+            'Preço Unitário Entrada (R$)', 'Corretagem Assessor (R$)', 'ROA Assessor (%)'
+        ), ',', '"');
+        
+        foreach ($negociacoes as $neg) {
+            fputcsv($output, array(
+                $neg['id'],
+                date('d/m/Y H:i:s', strtotime($neg['Data_Registro'])),
+                $neg['Conta_Vendedor'],
+                $neg['Nome_Vendedor'],
+                $neg['Produto'],
+                $neg['Estrategia'],
+                number_format($neg['Quantidade_negociada'], 0, ',', '.'),
+                number_format($neg['Valor_Bruto_Saida'], 2, ',', '.'),
+                number_format($neg['Valor_Liquido_Saida'], 2, ',', '.'),
+                number_format(isset($neg['Preco_Unitario_Saida']) ? $neg['Preco_Unitario_Saida'] : 0, 4, ',', '.'),
+                number_format(isset($neg['Ganho_Saida']) ? $neg['Ganho_Saida'] : 0, 2, ',', '.'),
+                number_format(isset($neg['Rentabilidade_Saida']) ? $neg['Rentabilidade_Saida'] : 0, 2, ',', '.'),
+                $neg['Conta_Comprador'],
+                $neg['Nome_Comprador'],
+                number_format($neg['Taxa_Entrada'], 2, ',', '.'),
+                number_format($neg['Valor_Bruto_Entrada'], 2, ',', '.'),
+                number_format(isset($neg['Preco_Unitario_Entrada']) ? $neg['Preco_Unitario_Entrada'] : 0, 4, ',', '.'),
+                number_format(isset($neg['Corretagem_Assessor']) ? $neg['Corretagem_Assessor'] : 0, 2, ',', '.'),
+                number_format(isset($neg['Roa_Assessor']) ? $neg['Roa_Assessor'] : 0, 2, ',', '.')
+            ), ',', '"');
+        }
+        
+        fclose($output);
+        exit;
+    }
+
+    private function getNegociacoesPorPeriodo($dataInicio, $dataFim) {
+        $pdo = Database::getInstance()->getConnection();
+        try {
+            $sql = "SELECT * FROM NEGOCIACOES WHERE DATE(Data_Registro) BETWEEN :data_inicio AND :data_fim ORDER BY Data_Registro DESC";
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':data_inicio', $dataInicio);
+            $stmt->bindValue(':data_fim', $dataFim);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Erro ao buscar negociações: " . $e->getMessage());
+            return array();
+        }
+    }
+
+    private function validarData($data) {
+        return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', $data) && strtotime($data) !== false;
+    }
+}

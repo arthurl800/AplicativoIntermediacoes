@@ -15,6 +15,8 @@ require_once __DIR__ . '/app/controller/AuthController.php';
 require_once __DIR__ . '/app/controller/DashboardController.php';
 require_once __DIR__ . '/app/controller/AdminController.php';
 require_once __DIR__ . '/app/controller/DataController.php';
+require_once __DIR__ . '/app/controller/RelatorioController.php';
+require_once __DIR__ . '/app/controller/NegociacaoController.php';
 
 // Roteamento Simples: determina qual Controller e Ação (método) executar
 $controllerName = $_GET['controller'] ?? 'auth'; // Padrão AGORA é 'auth'
@@ -22,12 +24,14 @@ $actionName     = $_GET['action'] ?? 'login';    // Padrão AGORA é 'login'
 
 // Mapeamento de Controllers
 $controllers = [
-    'upload'    => UploadController::class,
-    'auth'      => AuthController::class,
-    'dashboard' => DashboardController::class,
-    'admin'     => AdminController::class,
-    'dados'     => DataController::class,
-    'data'      => DataController::class,
+    'upload'      => UploadController::class,
+    'auth'        => AuthController::class,
+    'dashboard'   => DashboardController::class,
+    'admin'       => AdminController::class,
+    'dados'       => DataController::class,
+    'data'        => DataController::class,
+    'relatorio'   => RelatorioController::class,
+    'negociacao'  => NegociacaoController::class,
 ];
 
 if (isset($controllers[$controllerName])) {

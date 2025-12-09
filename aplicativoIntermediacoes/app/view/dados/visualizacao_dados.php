@@ -1,124 +1,24 @@
 <?php if (isset($aggregates) && count($aggregates) > 0): ?>
-<style>
-    /* Carregamento da Fonte Inter e cores customizadas */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-    :root {
-        --primary-color: #1a73e8; /* Azul primário */
-        --primary-dark: #0f4c81;
-        --secondary-color: #34a853; /* Verde para valores positivos/líquidos */
-        --danger-color: #ea4335; /* Vermelho para impostos/IOF */
-        --action-color: #f97316; /* Laranja para destaque de ação */
-    }
-    body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f0f4f8;
-    }
-    /* Classe para ícones de ordenação */
-    .sort-icon {
-        margin-left: 5px;
-        opacity: 0.3;
-    }
-    .sortable:hover .sort-icon {
-        opacity: 0.6;
-    }
-    .sortable.asc .sort-icon-up,
-    .sortable.desc .sort-icon-down {
-        opacity: 1;
-        color: white;
-    }
-    /* Estilo para a tabela, garantindo rolagem e cabeçalho fixo */
-    #table-container {
-        max-height: 70vh; /* Altura máxima para rolagem vertical */
-        overflow-y: auto; /* Permite rolagem vertical */
-        overflow-x: hidden; /* Evita rolagem horizontal */
-        position: relative;
-    }
-    #data-table {
-        width: 100%;
-        table-layout: auto;
-        border-collapse: collapse;
-        max-width: 100%;
-    }
-    /* Quebra de palavras e reduções para evitar overflow */
-    #data-table td, #data-table th {
-        white-space: normal;
-        word-break: break-word;
-        overflow-wrap: anywhere;
-        padding: 0.75rem 1rem; /* aumenta o espaçamento para leitura */
-    }
-
-    /* Botões e ações com um estilo unificado */
-    .btn-negociar {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.45rem 0.75rem;
-        border-radius: 0.5rem;
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-
-    /* Melhor experiência móvel: cada linha vira um cartão com grid de duas colunas (label / valor) */
-    @media (max-width: 1280px) {
-        #table-container { overflow-x: hidden; }
-        #data-table thead { display: none; }
-        #data-table, #data-table tbody { display: block; }
-        #data-table tr { display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-bottom: 14px; border: 1px solid #e6edf3; border-radius: 10px; padding: 10px; background: #fff; }
-        /* Cada célula vira um par (label / value) com grid de duas colunas */
-        #data-table td { display: grid; grid-template-columns: 40% 60%; align-items: center; padding: 8px 10px; border-bottom: 1px dashed #f1f5f9; }
-        #data-table td:last-child { border-bottom: none; }
-        #data-table td::before { content: attr(data-label); font-weight: 700; color: #374151; padding-right: 8px; }
-
-        /* Ajustes tipográficos para mobile */
-        #data-table td { font-size: 0.95rem; }
-        #data-table tr { box-shadow: 0 2px 6px rgba(15,23,42,0.04); }
-
-        /* Esconder colunas menos importantes em telas muito pequenas */
-        @media (max-width: 640px) {
-            /* Esconde Emissor e Data_Compra para reduzir o ruído visual */
-            td[data-label*="Emissor"] { display: none; }
-            td[data-label*="Data Compra"] { display: none; }
-        }
-        /* Mostra o compact header no modo responsivo */
-        #compact-header { display: block; }
-    }
-    #data-table thead {
-        position: sticky;
-        top: 0;
-        z-index: 10; /* Garante que o cabeçalho fique sobre o corpo da tabela */
-    }
-        /* Button and responsive utilities have been centralized in includes/responsive-table.css */
-    </style>
-
-    <!-- Inclusão do Tailwind CSS (Recomendado para o layout) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="includes/responsive-table.css">
-
-                <!-- Tabela de Dados (Renderizada por JS) -->
-            <!-- O wrapper com as classes shadow e rounded foi movido para o #table-container -->
-            <!-- Compact header for mobile: sticky and compact labels -->
-            <div id="compact-header" class="hidden bg-[var(--primary-color)] text-white px-4 py-2 rounded-t-xl mb-2" style="position:sticky;top:0;z-index:20;">
-
-    <link rel="stylesheet" href="includes/responsive-table.css">
-                <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-4 text-sm font-semibold">
+    <div class="table-container">
+        <!-- Compact header for mobile: sticky and compact labels -->
+        <div id="compact-header" class="compact-header">
+            <div class="compact-header-content">
+                <div class="compact-header-info">
                         <span>Cliente</span>
                         <span>Produto</span>
                         <span>Qtd.</span>
                         <span>Vl. Líquido</span>
                     </div>
-                    <div class="text-xs opacity-90">Ações</div>
+                    <div class="compact-header-actions">Ações</div>
                 </div>
             </div>
-            <div id="table-wrapper" class="bg-white shadow-2xl rounded-xl overflow-hidden">
-                 <!-- Novo container para controlar a rolagem vertical -->
-                <div id="table-container" class="max-h-[70vh] overflow-y-auto overflow-x-auto">
-                    <table id="data-table" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-[var(--primary-color)] text-white sticky top-0">
+            <div class="table-wrapper">
+                <div id="table-container" class="table-scroll-container">
+                    <table id="data-table" class="data-table">
+                        <thead>
                             <!-- Cabeçalhos de Coluna -->
                         </thead>
-                        <tbody id="table-body" class="bg-white divide-y divide-gray-100">
+                        <tbody id="table-body">
                             <!-- Linhas de Dados -->
                         </tbody>
                     </table>
@@ -127,16 +27,15 @@
 
         </section>
 
-    <?php else: ?>
-        <section class="mt-4 p-8 no-data-section bg-white rounded-xl shadow-lg border border-gray-200" style="text-align:center;">
-            <p class="font-bold text-xl mb-3 text-red-600">
+    <?php else: ?> 
+        <section class="message warning text-center">
+            <p class="font-bold text-xl mb-3">
                 Nenhum investimento negociável encontrado.
             </p>
-            <p class="mb-4 text-gray-600">
+            <p class="mb-4">
                 Verifique se há dados importados. A lista acima é baseada em dados agrupados e filtrados do banco de dados.
             </p>
-            <a href="index.php?controller=upload&action=index" 
-               class="inline-block px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition duration-150 shadow-md">
+            <a href="index.php?controller=upload&action=index" class="btn btn-primary">
                 Ir para a Página de Importação (Upload)
             </a>
         </section>
@@ -391,21 +290,21 @@
                 row.className = 'hover:bg-blue-50 transition duration-100 ease-in-out';
                 
                 // Mapeamento das classes Tailwind para alinhamento
-                const alignClasses = {
-                    'Valor_Bruto': 'text-right font-medium text-gray-800',
-                    'Valor_Liquido': 'text-right font-bold text-[var(--secondary-color)]',
-                    'IOF': 'text-right text-sm text-[var(--danger-color)]',
-                    'IR': 'text-right text-sm text-[var(--danger-color)]',
-                    'Taxa_Emissao': 'text-right text-blue-600',
-                    'Quantidade': 'text-right text-sm text-gray-600',
-                    'Vencimento': 'text-center text-gray-700',
-                    'Data_Compra': 'text-center text-gray-700',
-                    'Emissor': 'text-sm text-gray-500',
-                    'default': 'text-left text-gray-900',
+                const alignClasses = { 
+                    'Valor_Bruto': 'text-align-right text-strong',
+                    'Valor_Liquido': 'text-align-right text-strong text-success-color',
+                    'IOF': 'text-align-right text-muted text-danger-color',
+                    'IR': 'text-align-right text-muted text-danger-color',
+                    'Taxa_Emissao': 'text-align-right text-info-color',
+                    'Quantidade': 'text-align-right text-muted',
+                    'Vencimento': 'text-align-center text-muted',
+                    'Data_Compra': 'text-align-center text-muted',
+                    'Emissor': 'text-muted',
+                    'default': '', // Default is left-aligned, no special color
                 };
                 
                 const visibleKeys = Object.keys(columnMap);
-
+                
                 visibleKeys.forEach(key => {
                     const cell = row.insertCell();
                     cell.className = `px-4 py-2 text-sm ${alignClasses[key] || alignClasses.default}`;
@@ -448,7 +347,7 @@
                 
                 // BOTÃO DE NEGOCIAÇÃO DESTACADO
                 const negotiateLink = `<a href="index.php?controller=dados&action=negotiate_form&${params}" 
-                                         class="btn-negociar text-white bg-[var(--action-color)] hover:bg-orange-600 px-3 py-1.5 rounded-lg transition duration-150 shadow-lg text-xs font-bold uppercase tracking-wider transform hover:scale-105 inline-block">
+                                         class="btn btn-negotiate">
                                          Negociar
                                      </a>`;
                 actionsCell.innerHTML = negotiateLink;

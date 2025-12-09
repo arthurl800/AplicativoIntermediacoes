@@ -8,38 +8,38 @@ unset($_SESSION['admin_message']);
     <h2>Adicionar Novo Usuário</h2>
 
     <?php if ($error): ?>
-        <div style="padding:10px;margin-bottom:12px;background:#f8d7da;color:#721c24;border-radius:6px;">
+        <div class="message error">
             <?= htmlspecialchars($error) ?>
         </div>
     <?php endif; ?>
 
-    <form action="index.php?controller=admin&action=createUser" method="POST">
-        <div>
-            <label for="username">Nome de Usuário</label>
-            <input type="text" id="username" name="username" required>
+    <form action="index.php?controller=admin&action=createUser" method="POST" class="form-container">
+        <div class="form-group">
+            <label for="username">Nome de Usuário:</label>
+            <input type="text" id="username" name="username" required class="input-field">
         </div>
-        <div>
-            <label for="cpf">CPF (somente dígitos)</label>
-            <input type="text" id="cpf" name="cpf" required maxlength="11">
+        <div class="form-group">
+            <label for="cpf">CPF (somente dígitos):</label>
+            <input type="text" id="cpf" name="cpf" required maxlength="11" class="input-field">
         </div>
-        <div>
-            <label for="role">Função</label>
-            <select id="role" name="role">
+        <div class="form-group">
+            <label for="role">Função:</label>
+            <select id="role" name="role" class="input-field">
                 <option value="user">Usuário</option>
                 <option value="admin">Administrador</option>
             </select>
         </div>
-        <div>
-            <label for="password">Senha</label>
-            <input type="password" id="password" name="password" required>
+        <div class="form-group">
+            <label for="password">Senha:</label>
+            <input type="password" id="password" name="password" required class="input-field">
         </div>
-        <div>
-            <label for="confirm_password">Confirmar Senha</label>
-            <input type="password" id="confirm_password" name="confirm_password" required>
+        <div class="form-group">
+            <label for="confirm_password">Confirmar Senha:</label>
+            <input type="password" id="confirm_password" name="confirm_password" required class="input-field">
         </div>
-        <div style="margin-top:12px;">
-            <button type="submit" style="background:#007bff;color:#fff;padding:8px 12px;border-radius:6px;border:0;">Criar Usuário</button>
-            <a href="index.php?controller=admin&action=users" style="margin-left:8px;">Cancelar</a>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Criar Usuário</button>
+            <a href="index.php?controller=admin&action=users" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
 </main>

@@ -11,13 +11,13 @@ unset($_SESSION['auth_error'], $_SESSION['auth_success']);
         <h2>Criar Nova Conta</h2>
 
         <?php if ($error): ?>
-            <div class="message error-message">
+            <div class="message error">
                 <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
 
         <?php if ($success): ?>
-            <div class="message success-message">
+            <div class="message success">
                 <?= htmlspecialchars($success) ?>
             </div>
         <?php endif; ?>
@@ -48,88 +48,14 @@ unset($_SESSION['auth_error'], $_SESSION['auth_success']);
                 <input type="password" id="confirm_password" name="confirm_password" required>
             </div>
 
-            <button type="submit" class="submit-btn">Cadastrar</button>
+            <button type="submit" class="btn btn-primary">Cadastrar</button>
         </form>
         
-        <p class="mt-4 text-center">
-            Já tem conta? <a href="index.php?controller=auth&action=login" class="link-secondary">Fazer Login</a>
+        <p class="text-center mt-4">
+            Já tem conta? <a href="index.php?controller=auth&action=login" class="btn-link">Fazer Login</a>
         </p>
     </div>
 </main>
-
-<style>
-    /* Estilos básicos para o formulário de cadastro */
-    .form-container {
-        max-width: 450px;
-        margin: 40px auto;
-        padding: 30px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    }
-    .form-container h2 {
-        text-align: center;
-        color: #333;
-        margin-bottom: 25px;
-        border-bottom: 2px solid #5cb85c;
-        padding-bottom: 10px;
-    }
-    .form-group {
-        margin-bottom: 15px;
-    }
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-        color: #555;
-    }
-    .form-group input[type="text"],
-    .form-group input[type="password"] {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box; /* Garante que padding não afete a largura total */
-    }
-    .submit-btn {
-        width: 100%;
-        padding: 12px;
-        background-color: #5cb85c;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 1.1em;
-        transition: background-color 0.3s;
-        margin-top: 10px;
-    }
-    .submit-btn:hover {
-        background-color: #4cae4c;
-    }
-    .message {
-        padding: 10px;
-        margin-bottom: 15px;
-        border-radius: 4px;
-        font-weight: bold;
-    }
-    .error-message {
-        background-color: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-    .success-message {
-        background-color: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-    .link-secondary {
-        color: #007bff;
-        text-decoration: none;
-    }
-    .link-secondary:hover {
-        text-decoration: underline;
-    }
-</style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

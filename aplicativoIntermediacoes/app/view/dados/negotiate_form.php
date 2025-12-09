@@ -1,5 +1,4 @@
-<script src="https://cdn.tailwindcss.com"></script>
-<script type="module">
+<script type="module"> 
     // Firebase Imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -78,10 +77,10 @@
         // Preço Unitário de Saída = Valor Líquido Saída / Quantidade
         let precoUnitarioSaida = 0;
         if (qNegociada > 0) {
-            precoUnitarioSaida = vLiquidoSaida / qNegociada;
+            precoUnitarioSaida = vLiquidoSaida / qNegociada; 
         }
         document.getElementById('preco_unitario_saida').value = formatCurrency(precoUnitarioSaida);
-
+        
         // Ganho = Valor Líquido Saída - Valor Bruto Importado (desescalado)
         const ganho = vLiquidoSaida - vBrutoImportadoDesescalado;
         document.getElementById('ganho_saida').value = formatCurrency(ganho);
@@ -91,7 +90,7 @@
         // Rentabilidade = Ganho / Valor da Plataforma (se vPlataforma > 0)
         let rentabilidadeSaida = 0;
         if (vPlataforma > 0) {
-            rentabilidadeSaida = (ganho / vPlataforma) * 100; // Resultado em % (base 100)
+            rentabilidadeSaida = (ganho / vPlataforma) * 100; // Resultado em % (base 100) 
         }
         document.getElementById('rentabilidade_saida').value = formatRateDisplay(rentabilidadeSaida);
 
@@ -101,7 +100,7 @@
         // Preço Unitário de Entrada = Valor Bruto de Entrada / Quantidade
         let precoUnitarioEntrada = 0;
         if (qNegociada > 0) {
-            precoUnitarioEntrada = vBrutoEntrada / qNegociada;
+            precoUnitarioEntrada = vBrutoEntrada / qNegociada; 
         }
         document.getElementById('preco_unitario_entrada').value = formatCurrency(precoUnitarioEntrada);
 
@@ -116,7 +115,7 @@
         // ROA = Corretagem / Valor Bruto Saída (se vBrutoSaida > 0)
         let roaAssessor = 0;
         if (vBrutoSaida > 0) {
-            roaAssessor = (corretagemAssessor / vBrutoSaida) * 100; // Resultado em % (base 100)
+            roaAssessor = (corretagemAssessor / vBrutoSaida) * 100; // Resultado em % (base 100) 
         }
         document.getElementById('roa_assessor').value = formatRateDisplay(roaAssessor);
     };
@@ -233,22 +232,22 @@
     
     // Simples Modal de Alerta (substituto do alert())
     function alertModal(title, message, type) {
-        const modal = document.getElementById('custom-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const header = document.getElementById('modal-header');
-
+        const modal = document.getElementById('custom-modal'); 
+        const modalTitle = document.getElementById('modal-title'); 
+        const modalMessage = document.getElementById('modal-message'); 
+        const header = document.getElementById('modal-header'); 
+        
         modalTitle.textContent = title;
         modalMessage.textContent = message;
-
-        header.className = 'px-4 py-3 text-lg font-bold text-white rounded-t-lg';
-
+        
+        header.className = 'modal-header'; // Reset classes
+        
         if (type === 'success') {
-            header.classList.add('bg-green-600');
+            header.classList.add('modal-header-success');
         } else if (type === 'error') {
-            header.classList.add('bg-red-600');
+            header.classList.add('modal-header-error');
         } else {
-            header.classList.add('bg-blue-600');
+            header.classList.add('modal-header-info');
         }
 
         modal.classList.remove('hidden');
@@ -267,38 +266,9 @@
     });
 </script>
 
-<!-- Estilização Principal -->
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-    body {
-        font-family: 'Inter', sans-serif;
-    }
-    .input-field {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        transition: border-color 0.15s ease-in-out;
-    }
-    .input-field:focus {
-        border-color: #3b82f6;
-        outline: none;
-    }
-    .read-only-field {
-        background-color: #f3f4f6;
-        font-weight: 600;
-        cursor: default;
-    }
-    .text-positive {
-        color: #10b981; /* Verde esmeralda */
-    }
-    .text-negative {
-        color: #ef4444; /* Vermelho */
-    }
-</style>
-
-<main class="p-4 md:p-8 max-w-4xl mx-auto">
-    <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Formulário de Negociação</h2>
+<main>
+    <div class="negotiation-form-container">
+    <h2 class="form-section-title">Formulário de Negociação</h2>
 
     <?php 
         // Desescalando os valores numéricos para exibição no cabeçalho
@@ -307,29 +277,29 @@
         $taxa_display = number_format(($data['taxa_emissao'] ?? 0) / 1, 2, ',', '.') . ' %';
         $quantidade_max = htmlspecialchars($data['quantidade'] ?? 0);
     ?>
-
-    <div id="negotiation-summary" class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-lg shadow-md">
-        <p class="text-sm text-blue-700 font-semibold">
+    
+    <div id="negotiation-summary" class="negotiation-summary">
+        <p class="negotiation-summary-item text-info">
             Detalhes do Ativo:
         </p>
-        <p class="mt-1 text-gray-800">
-            <span class="font-bold">Cliente:</span> <?= htmlspecialchars($data['nome'] ?? 'N/A') ?> (Conta: <?= htmlspecialchars($data['conta'] ?? 'N/A') ?>)
+        <p class="negotiation-summary-item">
+            <span class="font-bold">Cliente:</span> <?= htmlspecialchars($data['nome'] ?? 'N/A') ?> (Conta: <?= htmlspecialchars($data['conta'] ?? 'N/A') ?>) 
         </p>
-        <p class="mt-1 text-gray-800">
-            <span class="font-bold">Produto/Tipo:</span> <?= htmlspecialchars($data['produto'] ?? 'N/A') ?> / <?= htmlspecialchars($data['estrategia'] ?? 'N/A') ?>
+        <p class="negotiation-summary-item">
+            <span class="font-bold">Produto/Tipo:</span> <?= htmlspecialchars($data['produto'] ?? 'N/A') ?> / <?= htmlspecialchars($data['estrategia'] ?? 'N/A') ?> 
         </p>
-        <p class="mt-1 text-gray-800">
-            <span class="font-bold">Vencimento:</span> <?= htmlspecialchars($data['vencimento'] ?? ($data['vencimento_raw'] ?? 'N/A')) ?>
+        <p class="negotiation-summary-item">
+            <span class="font-bold">Vencimento:</span> <?= htmlspecialchars($data['vencimento'] ?? ($data['vencimento_raw'] ?? 'N/A')) ?> 
         </p>
-        <div class="flex flex-wrap gap-x-8 mt-2">
+        <div class="negotiation-summary-item-group">
             <p>
-                <span class="font-bold text-sm">Taxa Original:</span> <span class="text-blue-600"><?= $taxa_display ?></span>
+                <span class="font-bold">Taxa Original:</span> <span class="text-info"><?= $taxa_display ?></span>
             </p>
             <p>
-                <span class="font-bold text-sm">Valor Líquido:</span> <span class="text-green-600">R$ <?= $vl_liquido_display ?></span>
+                <span class="font-bold">Valor Líquido:</span> <span class="text-success">R$ <?= $vl_liquido_display ?></span>
             </p>
             <p>
-                <span class="font-bold text-sm">Qtd. Disponível:</span> <span class="text-gray-800"><?= number_format($data['quantidade'] ?? 0, 0, ',', '.') ?></span>
+                <span class="font-bold">Qtd. Disponível:</span> <span><?= number_format($data['quantidade'] ?? 0, 0, ',', '.') ?></span>
             </p>
         </div>
     </div>
@@ -351,29 +321,29 @@
         <input type="hidden" id="quantidade_maxima" value="<?= $quantidade_max ?>">
 
         <!-- Quantidade a Negociar -->
-        <div class="mb-6">
-            <label for="quantidade_negociada" class="block text-sm font-medium text-gray-700 mb-1">
+        <div class="form-group">
+            <label for="quantidade_negociada">
                 Quantidade a Negociar (Máx: <?= number_format($data['quantidade'] ?? 0, 0, ',', '.') ?>):
             </label>
             <input type="number" id="quantidade_negociada" name="quantidade_negociada" min="1" max="<?= $quantidade_max ?>" value="<?= $quantidade_max ?>" 
-                   class="input-field text-xl font-bold border-indigo-500" required>
+                   class="input-field" required>
         </div>
 
-        <hr class="my-6 border-gray-300">
+        <hr class="form-divider">
 
         <!-- Seção VENDEDOR (Saída) -->
-        <h3 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Vendedor (Saída)</h3>
-        <div class="grid md:grid-cols-3 gap-4 mb-6">
-            <div class="md:col-span-1">
-                <label for="taxa_saida" class="block text-sm font-medium text-gray-700 mb-1">Taxa de Saída (%):</label>
+        <h3 class="form-section-title">Vendedor (Saída)</h3>
+        <div class="form-grid">
+            <div class="form-col">
+                <label for="taxa_saida">Taxa de Saída (%):</label>
                 <input type="text" id="taxa_saida" name="taxa_saida" placeholder="1.25" class="input-field">
             </div>
-            <div class="md:col-span-1">
-                <label for="valor_bruto_saida" class="block text-sm font-medium text-gray-700 mb-1">Valor Bruto de Saída (R$):</label>
+            <div class="form-col">
+                <label for="valor_bruto_saida">Valor Bruto de Saída (R$):</label>
                 <input type="text" id="valor_bruto_saida" name="valor_bruto_saida" placeholder="10.000,00" class="input-field">
             </div>
-            <div class="md:col-span-1">
-                <label for="valor_liquido_saida" class="block text-sm font-medium text-gray-700 mb-1">Valor Líquido de Saída (R$):</label>
+            <div class="form-col">
+                <label for="valor_liquido_saida">Valor Líquido de Saída (R$):</label>
                 <input type="text" id="valor_liquido_saida" name="valor_liquido_saida" placeholder="9.800,00" class="input-field" required>
             </div>
         </div>
@@ -420,53 +390,53 @@
         <!-- Resultados COMPRADOR -->
         <div class="grid md:grid-cols-4 gap-4 mb-6">
             <div class="md:col-span-1">
-                <label class="block text-sm font-medium text-gray-500 mb-1">Preço Unitário (Comprador):</label>
+                <label class="form-label-readonly">Preço Unitário (Comprador):</label>
                 <input type="text" id="preco_unitario_entrada" class="input-field read-only-field" readonly value="R$ 0,00">
             </div>
         </div>
 
-        <hr class="my-6 border-gray-300">
+        <hr class="form-divider">
 
         <!-- Seção ASSESSOR -->
-        <h3 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Assessor e Plataforma</h3>
-        <div class="grid md:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label for="valor_plataforma" class="block text-sm font-medium text-gray-700 mb-1">Valor da Plataforma (R$):</label>
+        <h3 class="form-section-title">Assessor e Plataforma</h3>
+        <div class="form-grid">
+            <div class="form-col">
+                <label for="valor_plataforma">Valor da Plataforma (R$):</label>
                 <input type="text" id="valor_plataforma" name="valor_plataforma" placeholder="50,00" class="input-field" required>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Corretagem (Entrada - Saída):</label>
-                <input type="text" id="corretagem_assessor" class="input-field read-only-field text-xl font-bold" readonly value="R$ 0,00">
+            <div class="form-col">
+                <label class="form-label-readonly">Corretagem (Entrada - Saída):</label>
+                <input type="text" id="corretagem_assessor" class="input-field read-only-field" readonly value="R$ 0,00">
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">ROA (Corretagem / Bruto Saída):</label>
+            <div class="form-col">
+                <label class="form-label-readonly">ROA (Corretagem / Bruto Saída):</label>
                 <input type="text" id="roa_assessor" class="input-field read-only-field" readonly value="0,00 %">
             </div>
         </div>
 
         <!-- Botões de Ação -->
-        <div class="mt-8 flex justify-end space-x-4">
+        <div class="form-actions">
             <a href="index.php?controller=dados&action=visualizar" 
-               class="px-6 py-3 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition">
+               class="btn btn-secondary">
                 Cancelar
             </a>
-            <button type="submit" class="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition disabled:opacity-50">
+            <button type="submit" class="btn btn-primary">
                 Processar Negociação
             </button>
         </div>
     </form>
     
     <!-- Modal Customizado para Feedback (Substitui alert()) -->
-    <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-2xl max-w-sm w-full mx-4">
-            <div id="modal-header" class="px-4 py-3 text-lg font-bold text-white rounded-t-lg">
+    <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center z-50"> 
+        <div class="modal-custom">
+            <div id="modal-header" class="modal-header">
                 <h3 id="modal-title">Título</h3>
             </div>
-            <div class="p-4">
-                <p id="modal-message" class="text-gray-700"></p>
-                <div class="mt-4 flex justify-end">
+            <div class="modal-content">
+                <p id="modal-message"></p>
+                <div class="modal-footer">
                     <button onclick="document.getElementById('custom-modal').classList.add('hidden')" 
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                            class="btn btn-info">
                         Fechar
                     </button>
                 </div>

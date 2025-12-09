@@ -1,17 +1,15 @@
 <main>
 
-<link rel="stylesheet" href="includes/responsive-table.css">
-
-<div style="border: 1px solid #007bff; padding: 15px; margin-top: 20px; background-color: #ffffa5;">
+<div class="form-container">
     <h2>Importar Dados</h2>
     
     <form action="index.php?controller=upload&action=processUpload" method="POST" enctype="multipart/form-data">
         <p>Selecione o arquivo para importar:</p>
         
-        <input type="file" name="arquivo_csv" accept=".csv" required>
+        <input type="file" name="arquivo_csv" accept=".csv,.xlsx,.xls,.ods" required class="input-field">
         
         <br><br>
-        <button type="submit">Enviar e Salvar no Banco</button>
+        <button type="submit" class="btn btn-primary">Enviar e Salvar no Banco</button>
     </form>
 </div>
 
@@ -33,10 +31,10 @@
     if (!empty($preview)):
     ?>
         <section style="margin-top:20px; padding:12px; border:1px dashed #007bff; background:#f8fbff;">
-            <h3 style="margin-top:0;">Preview da Última Importação (head 25)</h3>
-            <div style="overflow:auto;">
+            <h3 class="form-section-title">Preview da Última Importação (head 25)</h3>
+            <div class="table-wrapper">
                 <div class="preview-wrapper">
-                <table class="preview-table" style="width:100%; border-collapse:collapse;">
+                <table class="preview-table data-table">
                     <thead>
                         <tr style="background:#e9f5ff;">
                             <?php if (!empty($previewHeader)): ?>
@@ -45,7 +43,7 @@
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <?php
-                                // Cabeçalhos numéricos 1..n
+                                // Cabeçalhos numéricos 1..n 
                                 $maxCols = max(array_map('count', $preview));
                                 for ($i=0;$i<$maxCols;$i++): ?>
                                     <th style="padding:6px;border:1px solid #ddd;">Col <?= $i+1 ?></th>
@@ -67,7 +65,7 @@
                                     ?>
                                     <?php $label = $previewHeader[$i] ?? ('Col ' . ($i+1)); ?>
                                     <td data-label="<?= htmlspecialchars($label) ?>" style="padding:6px;border:1px solid #eee;"><?= htmlspecialchars($cellVal ?? '') ?></td>
-                                <?php endfor; ?>
+                                <?php endfor; ?> 
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -75,7 +73,7 @@
                 </div>
             </div>
             <div style="margin-top:10px;">
-                <a href="index.php?controller=dados&action=visualizar&clear_preview=1" style="text-decoration:none;color:#333;background:#fff;border:1px solid #007bff;padding:6px 10px;border-radius:4px;">Fechar Preview</a>
+                <a href="index.php?controller=dados&action=visualizar&clear_preview=1" class="btn btn-secondary">Fechar Preview</a>
             </div>
         </section>
     <?php
