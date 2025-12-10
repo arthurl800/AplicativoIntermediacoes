@@ -37,7 +37,6 @@ $user = $authManager->getCurrentUser();
                     <a href="index.php?controller=upload&action=index">📥 Importar</a>
                     <a href="index.php?controller=negociacao&action=painel">💰 Negociações</a>
                     <a href="index.php?controller=dados&action=visualizar_negociadas">✅ Negociadas</a>
-                    <a href="index.php?controller=relatorio&action=dashboard">📈 Dashboard</a>
                     <a href="index.php?controller=relatorio&action=auditoria">📋 Auditoria</a>
                     
                     <?php if ($user && $user['role'] === 'admin'): ?>

@@ -6,9 +6,17 @@ require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
 class NegociacaoModel {
     private $pdo;
     private $table = 'NEGOCIACOES';
+    private $tableIntermediacao = 'INTERMEDIACOES_TABLE'; // Tabela de intermediações para leitura
 
     public function __construct() {
         $this->pdo = Database::getInstance()->getConnection();
+        
+        // Obtém o nome da tabela da configuração se disponível
+        $configFile = dirname(dirname(__DIR__)) . '/config/database.php';
+        if (file_exists($configFile)) {
+            $cfg = include $configFile;
+            $this->tableIntermediacao = $cfg['TABLE_NAME'] ?? 'INTERMEDIACOES_TABLE';
+        }
     }
 
     /**
@@ -91,22 +99,22 @@ class NegociacaoModel {
         try {
             $sql = "SELECT 
                         id,
-                        Codigo_Cliente as conta,
-                        Nome_Corretora as cliente,
+                        Conta as conta,
+                        Nome as cliente,
                         Ativo as produto,
-                        Tipo_Operacao as estrategia,
+                        Estrategia as estrategia,
                         CNPJ as emissor,
-                        Data_Vencimento as vencimento,
-                        Taxa_Liquidacao as taxa,
+                        Vencimento as vencimento,
+                        Taxa_Compra as taxa,
                         Quantidade as quantidade,
                         Valor_Bruto as valor_bruto_centavos,
-                        IRRF as ir_centavos,
+                        IR as ir_centavos,
                         Valor_Liquido as valor_liquido_centavos,
-                        Data as data_compra,
+                        Data_Compra as data_compra,
                         Quantidade as quantidade_disponivel
-                    FROM INTERMEDIACOES
+                    FROM {$this->tableIntermediacao}
                     WHERE Quantidade > 0
-                    ORDER BY Data DESC, Nome_Corretora ASC
+                    ORDER BY Data_Compra DESC, Nome ASC
                     LIMIT :limit";
 
             $stmt = $this->pdo->prepare($sql);
@@ -132,20 +140,20 @@ class NegociacaoModel {
         try {
             $sql = "SELECT 
                         id,
-                        Codigo_Cliente as conta,
-                        Nome_Corretora as cliente,
+                        Conta as conta,
+                        Nome as cliente,
                         Ativo as produto,
-                        Tipo_Operacao as estrategia,
+                        Estrategia as estrategia,
                         CNPJ as emissor,
-                        Data_Vencimento as vencimento,
-                        Taxa_Liquidacao as taxa,
+                        Vencimento as vencimento,
+                        Taxa_Compra as taxa,
                         Quantidade as quantidade,
                         Valor_Bruto as valor_bruto_centavos,
-                        IRRF as ir_centavos,
+                        IR as ir_centavos,
                         Valor_Liquido as valor_liquido_centavos,
-                        Data as data_compra,
+                        Data_Compra as data_compra,
                         Quantidade as quantidade_disponivel
-                    FROM INTERMEDIACOES
+                    FROM {$this->tableIntermediacao}
                     WHERE id = :id
                     LIMIT 1";
 
@@ -171,7 +179,7 @@ class NegociacaoModel {
      */
     public function atualizarQuantidadeDisponivel(int $id, int $quantidade_nova): bool {
         try {
-            $sql = "UPDATE INTERMEDIACOES 
+            $sql = "UPDATE {$this->tableIntermediacao} 
                     SET Quantidade = :quantidade 
                     WHERE id = :id";
 
@@ -260,5 +268,63 @@ class NegociacaoModel {
         if ($valor == 0) return '0,00%';
         $formatado = number_format($valor, 2, ',', '.');
         return $formatado . '%';
+    }
+
+    /**
+     * Converte valores numéricos do banco para float em reais (tratando centavos ou reais)
+     * Aceita: integer centavos (51673367), float em reais (51673.367), string numérica
+     */
+    public function toReaisFloat($valor): float {
+        if ($valor === null || $valor === '') return 0.0;
+        // Se for string com vírgula, substituir
+        if (is_string($valor)) {
+            $v = str_replace(['.', ','], ['', '.'], $valor);
+            if (is_numeric($v)) $valor = $v;
+        }
+
+        $f = (float)$valor;
+        // Heurística: valores inteiros grandes provavelmente estão em centavos
+        if (floor($f) == $f && abs($f) > 1000) {
+            return $f / 100.0;
+        }
+        return $f;
+    }
+
+    /**
+     * Calcula preço unitário (vendedor) a partir do valor líquido total e quantidade
+     */
+    public function calcularPrecoUnitarioSaida(float $valor_liquido_saida, int $quantidade): float {
+        if ($quantidade <= 0) return 0.0;
+        return $valor_liquido_saida / $quantidade;
+    }
+
+    /**
+     * Calcula ganho do vendedor: diferença entre valor líquido recebido e custo importado
+     */
+    public function calcularGanhoSaida(float $valor_liquido_saida, float $custo_importado_total): float {
+        return $valor_liquido_saida - $custo_importado_total;
+    }
+
+    /**
+     * Calcula rentabilidade em porcentagem
+     */
+    public function calcularRentabilidade(float $ganho, float $custo_importado_total): float {
+        if ($custo_importado_total <= 0) return 0.0;
+        return ($ganho / $custo_importado_total) * 100.0;
+    }
+
+    /**
+     * Corretagem do assessor (por enquanto, valor informado como "valor plataforma")
+     */
+    public function calcularCorretagem(float $valor_plataforma): float {
+        return $valor_plataforma;
+    }
+
+    /**
+     * Calcula ROA (%) do assessor: corretagem / valor de entrada
+     */
+    public function calcularRoa(float $corretagem, float $valor_entrada): float {
+        if ($valor_entrada <= 0) return 0.0;
+        return ($corretagem / $valor_entrada) * 100.0;
     }
 }

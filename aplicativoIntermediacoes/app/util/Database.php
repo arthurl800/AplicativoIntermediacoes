@@ -15,15 +15,15 @@ class Database {
                 throw new Exception("Arquivo de configuração do banco não encontrado: {$configFile}");
             }
             $cfg = include $configFile;
-            error_log('DEBUG: Config array from database.php: ' . print_r($cfg, true));
             $host = $cfg['DB_HOST'] ?? 'localhost';
             $db   = $cfg['DB_NAME'] ?? '';
             $user = $cfg['DB_USER'] ?? '';
             $pass = $cfg['DB_PASS'] ?? '%$#';
             $charset = $cfg['DB_CHARSET'] ?? 'utf8';
-            error_log("DEBUG: Connecting with host={$host}, db={$db}, user={$user}, pass={$pass}, charset={$charset}");
 
-            $dsn = "mysql:host={$host};dbname={$db};charset={$charset}";
+            // Use TCP/IP instead of socket for better compatibility
+            $actualHost = ($host === 'localhost') ? '127.0.0.1' : $host;
+            $dsn = "mysql:host={$actualHost};dbname={$db};charset={$charset}";
             $this->pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

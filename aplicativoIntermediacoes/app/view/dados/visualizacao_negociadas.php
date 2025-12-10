@@ -4,14 +4,17 @@
     </h2>
 
     <p class="mb-4">
-        Esta tabela exibe os registros de títulos/intermediações <strong>após a realização de negociações</strong>.
-        Quantidades foram decrementadas conforme as negociações realizadas. Apenas títulos com quantidade > 0 são exibidos.
+        
+    <br>Esta tabela exibe os registros de títulos/intermediações <strong>após alguma negociação efetivada</strong>.</br>
+        
+    <br>Apenas títulos com quantidade > 0 são exibidos nesta tabela.</br>
+    
     </p>
 
     <?php if (empty($data)): ?>
         <div class="message warning">
             <p>
-                Nenhum registro de intermediações negociadas encontrado.
+                <br>Nenhum registro de intermediações negociadas encontrado.</br>
             </p>
         </div>
     <?php else: ?>

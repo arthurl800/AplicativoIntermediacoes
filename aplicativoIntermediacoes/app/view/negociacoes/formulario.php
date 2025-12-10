@@ -118,47 +118,110 @@
             <input type="hidden" name="negociacao_id" value="<?= (int)$negociacao['id'] ?>">
 
             <div class="grid grid-2">
-                <div class="form-group">
-                    <label for="quantidade_vendida" class="form-label">
-                        Quantidade a Vender
-                        <small class="text-danger">*</small>
-                    </label>
-                    <input 
-                        type="number" 
-                        id="quantidade_vendida" 
-                        name="quantidade_vendida" 
-                        min="1" 
-                        max="<?= (int)$negociacao['quantidade_disponivel'] ?>" 
-                        required 
-                        placeholder="Ex: 5"
-                        class="form-control"
-                        onchange="atualizarPreview()">
-                    <small class="text-muted">
-                        Máximo: <strong><?= (int)$negociacao['quantidade_disponivel'] ?></strong> títulos
-                    </small>
+                <div>
+                    <div class="form-group">
+                        <label for="quantidade_vendida" class="form-label">
+                            Quantidade a Vender
+                            <small class="text-danger">*</small>
+                        </label>
+                        <input 
+                            type="number" 
+                            id="quantidade_vendida" 
+                            name="quantidade_vendida" 
+                            min="1" 
+                            max="<?= (int)$negociacao['quantidade_disponivel'] ?>" 
+                            required 
+                            placeholder="Ex: 5"
+                            class="form-control"
+                            onchange="atualizarPreview()">
+                        <small class="text-muted">
+                            Máximo: <strong><?= (int)$negociacao['quantidade_disponivel'] ?></strong> títulos
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taxa_saida">Taxa de Saída (%)</label>
+                        <input type="number" step="0.01" id="taxa_saida" name="taxa_saida" class="form-control" value="0" onchange="atualizarPreview()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="valor_bruto_saida">Valor Bruto de Saída (R$)</label>
+                        <input type="number" step="0.01" id="valor_bruto_saida" name="valor_bruto_saida" class="form-control" value="" onchange="atualizarPreview()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="valor_liquido_saida">Valor Líquido de Saída (R$)</label>
+                        <input type="number" step="0.01" id="valor_liquido_saida" name="valor_liquido_saida" class="form-control" value="">
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="quantidade_remanescente" class="form-label">Quantidade Remanescente</label>
-                    <input 
-                        type="text" 
-                        id="quantidade_remanescente" 
-                        disabled 
-                        placeholder="Será atualizado"
-                        class="form-control" 
-                        style="background-color: #f5f5f5;">
-                    <small class="text-muted">Calculado automaticamente</small>
+                <div>
+                    <div class="form-group">
+                        <label for="taxa_entrada">Taxa de Entrada (%)</label>
+                        <input type="number" step="0.01" id="taxa_entrada" name="taxa_entrada" class="form-control" value="0" onchange="atualizarPreview()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="valor_entrada">Valor de Entrada (R$)</label>
+                        <input type="number" step="0.01" id="valor_entrada" name="valor_entrada" class="form-control" value="" onchange="atualizarPreview()">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="valor_plataforma">Valor da Plataforma (R$) - Assessor</label>
+                        <input type="number" step="0.01" id="valor_plataforma" name="valor_plataforma" class="form-control" value="0" onchange="atualizarPreview()">
+                    </div>
                 </div>
             </div>
 
-            <div class="alert alert-info mt-4">
-                <h3>⚠️ Restrições de Quantidade</h3>
-                <ul>
-                    <li><strong>Mínimo:</strong> 1 título</li>
-                    <li><strong>Máximo:</strong> <?= (int)$negociacao['quantidade_disponivel'] ?> títulos</li>
-                    <li><strong>Observação:</strong> Após a venda, a quantidade disponível será reduzida automaticamente</li>
-                </ul>
+            <div class="card mt-3">
+                <div class="card-header"><strong>📈 Preview / Cálculos</strong></div>
+                <div class="card-body">
+                    <div class="grid grid-2">
+                        <div>
+                            <div class="form-group">
+                                <label>Preço Unitário (Vendedor)</label>
+                                <div class="form-control-static" id="preco_unitario_vendedor">R$ 0,00</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Ganho (Vendedor)</label>
+                                <div class="form-control-static" id="ganho_vendedor">R$ 0,00</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Rentabilidade (Vendedor)</label>
+                                <div class="form-control-static" id="rentabilidade_vendedor">0,00%</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="form-group">
+                                <label>Preço Unitário (Comprador)</label>
+                                <div class="form-control-static" id="preco_unitario_comprador">R$ 0,00</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Corretagem (Assessor)</label>
+                                <div class="form-control-static" id="corretagem_assessor">R$ 0,00</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>ROA (Assessor)</label>
+                                <div class="form-control-static" id="roa_assessor">0,00%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Hidden raw values para envio/uso em cálculos no servidor -->
+            <input type="hidden" id="valor_bruto_importado_raw" name="valor_bruto_importado_raw" value="<?= htmlspecialchars($negociacao['valor_bruto_centavos'] ?? '0') ?>">
+            <input type="hidden" id="preco_unitario_saida_hidden" name="preco_unitario_saida" value="0">
+            <input type="hidden" id="preco_unitario_entrada_hidden" name="preco_unitario_entrada" value="0">
+            <input type="hidden" id="ganho_saida_hidden" name="ganho_saida" value="0">
+            <input type="hidden" id="rentabilidade_saida_hidden" name="rentabilidade_saida" value="0">
+            <input type="hidden" id="corretagem_hidden" name="corretagem_assessor" value="0">
+            <input type="hidden" id="roa_hidden" name="roa_assessor" value="0">
 
             <div class="card-footer flex flex-between mt-4" style="border-top: 1px solid var(--border-light); padding-top: 20px;">
                 <a href="index.php?controller=negociacao&action=painel" class="btn btn-outline">
@@ -175,17 +238,42 @@
 <script>
     const quantidadeDisponivel = <?= (int)$negociacao['quantidade_disponivel'] ?>;
 
+    // Tenta obter valor bruto importado em formato numérico (em reais)
+    function parseImportedRaw(v) {
+        const asNum = Number(v);
+        if (!isFinite(asNum)) return 0;
+        // Se valor aparentemente em centavos (inteiro grande), converte para reais
+        if (Number.isInteger(asNum) && Math.abs(asNum) > 1000) {
+            return asNum / 100.0;
+        }
+        return asNum;
+    }
+
+    function formatBRL(value) {
+        return 'R$ ' + value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
     function atualizarPreview() {
         const input = document.getElementById('quantidade_vendida');
         const remanescente = document.getElementById('quantidade_remanescente');
-        
+
         const quantidade_vendida = parseInt(input.value) || 0;
         const quantidade_nova = quantidadeDisponivel - quantidade_vendida;
+
+        // campos de valores
+        const taxa_saida = parseFloat(document.getElementById('taxa_saida').value) || 0;
+        const valor_bruto_saida = parseFloat(document.getElementById('valor_bruto_saida').value) || 0;
+        const taxa_entrada = parseFloat(document.getElementById('taxa_entrada').value) || 0;
+        const valor_entrada = parseFloat(document.getElementById('valor_entrada').value) || 0;
+        const valor_plataforma = parseFloat(document.getElementById('valor_plataforma').value) || 0;
+
+        const valor_bruto_importado_raw = parseImportedRaw(document.getElementById('valor_bruto_importado_raw').value || 0);
 
         if (quantidade_vendida > quantidadeDisponivel) {
             input.classList.add('error');
             remanescente.value = 'Quantidade inválida!';
             remanescente.classList.add('error-bg');
+            return;
         } else if (quantidade_vendida > 0) {
             input.classList.remove('error');
             remanescente.value = quantidade_nova;
@@ -195,10 +283,74 @@
             remanescente.value = '';
             remanescente.classList.remove('error-bg');
         }
+
+        // Determina valor bruto de saída (total) - se não informado, usa valor importado proporcional
+        let bruto_saida_total = valor_bruto_saida;
+        if (!bruto_saida_total || bruto_saida_total <= 0) {
+            // calcula unitário importado e multiplica
+            const unit_importado = (valor_bruto_importado_raw) ? (valor_bruto_importado_raw / Math.max(1, quantidadeDisponivel)) : 0;
+            bruto_saida_total = unit_importado * quantidade_vendida;
+        }
+
+        // Valor líquido do vendedor considerando taxa de saída (simplificado)
+        const valor_liquido_saida = bruto_saida_total * (1 - (taxa_saida / 100));
+
+        // Preço unitário vendedor
+        const preco_unitario_vendedor = (quantidade_vendida > 0) ? (valor_liquido_saida / quantidade_vendida) : 0;
+
+        // Ganho do vendedor = valor líquido recebido - custo importado proporcional
+        const custo_importado_total = (valor_bruto_importado_raw) ? (valor_bruto_importado_raw / Math.max(1, quantidadeDisponivel) * quantidade_vendida) : 0;
+        const ganho_vendedor = valor_liquido_saida - custo_importado_total;
+        const rentabilidade_vendedor = (custo_importado_total > 0) ? (ganho_vendedor / custo_importado_total * 100) : 0;
+
+        // Preço unitário comprador (se informado valor_entrada)
+        const preco_unitario_comprador = (quantidade_vendida > 0 && valor_entrada > 0) ? (valor_entrada / quantidade_vendida) : 0;
+
+        // Corretagem e ROA para assessor: assumimos corretagem = valor_plataforma; roa = corretagem / valor_entrada
+        const corretagem = valor_plataforma;
+        const roa = (valor_entrada > 0) ? (corretagem / valor_entrada * 100) : 0;
+
+        // Atualiza campos de exibição
+        const valorLiquidoInput = document.getElementById('valor_liquido_saida');
+        // Se o usuário já inseriu manualmente um valor, não sobrescreve
+        if (!valorLiquidoInput.dataset.userSet) {
+            valorLiquidoInput.value = valor_liquido_saida.toFixed(2);
+        }
+        document.getElementById('preco_unitario_vendedor').innerText = formatBRL(preco_unitario_vendedor);
+        document.getElementById('ganho_vendedor').innerText = formatBRL(ganho_vendedor);
+        document.getElementById('rentabilidade_vendedor').innerText = rentabilidade_vendedor.toFixed(2) + '%';
+
+        document.getElementById('preco_unitario_comprador').innerText = formatBRL(preco_unitario_comprador);
+        document.getElementById('corretagem_assessor').innerText = formatBRL(corretagem);
+        document.getElementById('roa_assessor').innerText = roa.toFixed(2) + '%';
+
+        // Guarda valores em hidden inputs para envio ao servidor
+        document.getElementById('preco_unitario_saida_hidden').value = preco_unitario_vendedor.toFixed(2);
+        document.getElementById('preco_unitario_entrada_hidden').value = preco_unitario_comprador.toFixed(2);
+        document.getElementById('ganho_saida_hidden').value = ganho_vendedor.toFixed(2);
+        document.getElementById('rentabilidade_saida_hidden').value = rentabilidade_vendedor.toFixed(2);
+        document.getElementById('corretagem_hidden').value = corretagem.toFixed(2);
+        document.getElementById('roa_hidden').value = roa.toFixed(2);
     }
 
     // Valida ao carregar a página
-    document.addEventListener('DOMContentLoaded', atualizarPreview);
+    document.addEventListener('DOMContentLoaded', function() {
+        atualizarPreview();
+        // atualiza também quando valores mudarem (segurança extra)
+        ['taxa_saida','taxa_entrada','valor_bruto_saida','valor_entrada','valor_plataforma','quantidade_vendida'].forEach(function(id){
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', atualizarPreview);
+        });
+
+        // Marcar se usuário editar manualmente o valor líquido
+        const valorLiquidoInput = document.getElementById('valor_liquido_saida');
+        if (valorLiquidoInput) {
+            valorLiquidoInput.addEventListener('input', function(){
+                this.dataset.userSet = '1';
+                atualizarPreview();
+            });
+        }
+    });
 </script>
 
 <style>
