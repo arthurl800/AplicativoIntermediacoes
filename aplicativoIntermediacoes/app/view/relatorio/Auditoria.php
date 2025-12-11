@@ -62,6 +62,6 @@
     </div>
 
     <div class="back-link">
-        <a href="index.php?controller=relatorio&action=dashboard">← Voltar ao Dashboard</a>
+        <a href="index.php?controller=negociacao&action=index">← Voltar as Negociações</a>
     </div>
 </div>

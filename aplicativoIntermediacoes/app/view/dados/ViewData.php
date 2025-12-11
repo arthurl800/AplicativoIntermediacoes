@@ -1,3 +1,6 @@
+<?php
+// app/dados/ViewData.php
+?>
 <?php if (isset($aggregates) && count($aggregates) > 0): ?>
     <div class="table-container">
         <!-- Compact header for mobile: sticky and compact labels -->

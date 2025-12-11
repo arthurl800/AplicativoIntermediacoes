@@ -1,6 +1,7 @@
 <?php
 // app/controller/AdminController.php
 
+// Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/model/UserModel.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 
@@ -30,7 +31,7 @@ class AdminController {
 
         // Carrega as views
         include dirname(dirname(__DIR__)) . '/includes/header.php';
-        include dirname(dirname(__DIR__)) . '/app/view/admin/user_list.php'; 
+        include dirname(dirname(__DIR__)) . '/app/view/admin/UserList.php'; 
         include dirname(dirname(__DIR__)) . '/includes/footer.php';
     }
 
@@ -77,7 +78,7 @@ class AdminController {
         }
 
         include dirname(dirname(__DIR__)) . '/includes/header.php';
-        include dirname(dirname(__DIR__)) . '/app/view/admin/user_edit.php';
+        include dirname(dirname(__DIR__)) . '/app/view/admin/UserEdit.php';
         include dirname(dirname(__DIR__)) . '/includes/footer.php';
     }
 

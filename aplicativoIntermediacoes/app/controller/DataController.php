@@ -1,6 +1,7 @@
 <?php
 // app/controller/DataController.php
 
+// Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/IntermediacaoModel.php';
 
@@ -19,7 +20,7 @@ class DataController {
         }
     }
 
-    // Ação Padrão: Redireciona para a visualização principal
+    // Redireciona para a visualização principal
     public function index() {
         $this->visualizar();
     }
@@ -36,7 +37,7 @@ class DataController {
         // Verifica se algum filtro foi aplicado
         $isFiltered = count(array_filter($filters)) > 0;
 
-        // 1. CHAMA O MODEL PARA OBTER OS DADOS
+        // Chama o Model para obtenção dos dados
         // Suporta parâmetro opcional 'columns' (ex: columns=Conta,Nome,Produto)
         $requestedColumns = [];
         if (!empty($_GET['columns'])) {
@@ -52,29 +53,26 @@ class DataController {
             // Se não houver filtros, carrega os dados padrão (limitado a 100)
             $dados = $this->intermediacaoModel->getAllData();
         }
-
         // Agregados negociáveis para o operador/comprador
         $aggregates = $this->intermediacaoModel->getNegotiableAggregates(200);
 
-    // 2. CARREGA AS VIEWS
+    // Carrega as Views
     $base_dir = dirname(dirname(__DIR__));
     // Disponibiliza lista de colunas existentes na tabela para a view
     $availableColumns = $this->intermediacaoModel->getAvailableColumns();
     include $base_dir . '/includes/header.php';
-    // A view principal para visualização dos dados (o Canvas que estamos focando)
-    include $base_dir . '/app/view/dados/visualizacao_dados.php'; 
+    // A view principal para visualização dos dados
+    include $base_dir . '/app/view/dados/ViewData.php'; 
     include $base_dir . '/includes/footer.php';
     }
     
-    // (Dashboard removido conforme solicitado)
-
-    /**
+     /**
      * Exibe o formulário de negociação preenchido com os valores do agregado selecionado.
      */
     public function negotiate_form() {
         $base_dir = dirname(dirname(__DIR__));
         // Verifica parâmetros (vêm da linha de negociação)
-        // Mapeia possíveis nomes de parâmetro (produzidos pela tabela JS)
+        // Mapeia possíveis nomes dos parâmetros
         $data = [
             'conta' => $_GET['conta'] ?? ($_GET['Conta'] ?? ''),
             'nome' => $_GET['nome'] ?? ($_GET['cliente'] ?? ($_GET['Nome'] ?? '')),
@@ -89,7 +87,7 @@ class DataController {
             'taxa_emissao' => isset($_GET['taxa_emissao']) ? $_GET['taxa_emissao'] : (isset($_GET['Taxa_Emissao']) ? $_GET['Taxa_Emissao'] : 0)
         ];
 
-        // Preserve raw vencimento (DB format) for server-side processing, then format for display
+        // Preservar a extensão bruta (formato DB) para processamento no servidor e, em seguida, formatar para exibição.
         if (!empty($data['vencimento'])) {
             $data['vencimento_raw'] = $data['vencimento'];
             // aceita AAAA-MM-DD ou YYYY-MM-DD
@@ -102,11 +100,11 @@ class DataController {
         }
 
         // Valores monetários no banco estão em centavos (ex: 51673367 -> 516733.67).
-        // Para exibição convertemos para reais com duas casas. Também aceita strings/numerics.
+        // Para exibição converte para reais com duas casas. Também aceita strings/numerics.
         $formatAmount = function($v) {
             if ($v === null || $v === '') return '0,00';
             $num = is_numeric($v) ? (float)$v : floatval(str_replace([',','R$',' '], ['','.',''], $v));
-            // assume inteiro em centavos se for maior que 1000 and no decimal point
+            // assume inteiro em centavos se for maior que 1000 e sem ponto decimal
             if ($num > 1000 && intval($num) == $num) {
                 $num = $num / 100.0;
             }
@@ -134,18 +132,18 @@ class DataController {
         $quantidade = (float)($_POST['quantidade'] ?? 0);
         $quantidade_negociada = (int)($_POST['quantidade_negociada'] ?? $quantidade);
         
-        // Valores do vendedor (desescalados em R$)
+        // Valores do vendedor
         $valor_bruto_saida = (float)($_POST['valor_bruto_saida'] ?? 0);
         $taxa_saida = (float)($_POST['taxa_saida'] ?? 0);
         $valor_liquido_saida = (float)($_POST['valor_liquido_saida'] ?? 0);
         
-        // Valores do comprador (desescalados em R$)
+        // Valores do comprador
         $conta_comprador = $_POST['conta_entrada'] ?? '';
         $nome_comprador = $_POST['nome_entrada'] ?? '';
         $taxa_entrada = (float)($_POST['taxa_entrada'] ?? 0);
         $valor_bruto_entrada = (float)($_POST['valor_bruto_entrada'] ?? 0);
         
-        // Valores de assessor (desescalados em R$)
+        // Valores de assessor
         $valor_plataforma = (float)($_POST['valor_plataforma'] ?? 0);
 
         // Operador atual
@@ -263,7 +261,7 @@ class DataController {
         $data = $negModel->getAllNegotiated(200);
         
         include $base_dir . '/includes/header.php';
-        include $base_dir . '/app/view/dados/visualizacao_negociadas.php';
+        include $base_dir . '/app/view/dados/ViewNegociadas.php';
         include $base_dir . '/includes/footer.php';
     }
 }

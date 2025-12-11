@@ -19,7 +19,7 @@ class UploadController {
         // Carrega o header/footer da pasta includes
         include dirname(dirname(__DIR__)) . '/includes/header.php';
         // Carrega a view de formulário
-        include dirname(dirname(__DIR__)) . '/app/view/upload_form.php'; 
+        include dirname(dirname(__DIR__)) . '/app/view/UploadForm.php'; 
         include dirname(dirname(__DIR__)) . '/includes/footer.php';
     }
 
@@ -52,13 +52,13 @@ class UploadController {
             $arquivo_nome = $arquivo["name"];
             
             try {
-                // 1. Injeta o Processador correto com base na extensão
+                // Injeta o Processador correto com base na extensão
                 $processor = $this->getProcessor($arquivo_nome);
 
-                // 2. Processa/Lê o arquivo (Utility)
+                // Processa/Lê o arquivo (Utility)
                 $resultData = $processor->read($arquivo_temp);
 
-                // Compatibilidade: se o processador ainda retornar só rows, normalizamos
+                // Compatibilidade: Verifica se o resultado tem header e rows
                 if (is_array($resultData) && array_key_exists('rows', $resultData)) {
                     $header = $resultData['header'] ?? null;
                     $records = $resultData['rows'] ?? [];
@@ -72,15 +72,8 @@ class UploadController {
                     throw new Exception("Nenhum dado válido encontrado no arquivo. Verifique o conteúdo e o cabeçalho.");
                 }
 
-                // 3. Salva os dados no DB (Model)
+                // Salva os dados no DB (Model)
                 $db_result = $this->model->insertBatch($records);
-
-                // --- PONTO DE DEBUG TEMPORÁRIO ---
-                // Se a execução parar aqui, verifique o conteúdo de $db_result.
-                // Ele deve mostrar se algum registro foi inserido e se houve erros de SQL.
-                // echo "<pre>"; var_dump($db_result); 
-                // echo "</pre>"; die;
-                // --- FIM DO DEBUG TEMPORÁRIO ---
 
                 $result['success'] = true;
                 $result['message'] = "Arquivo '{$arquivo_nome}' processado com sucesso! **{$db_result['inserted']}** registros inseridos.";
@@ -104,7 +97,7 @@ class UploadController {
 
         // Carrega a view de resultado
         include dirname(dirname(__DIR__)) . '/includes/header.php';
-        include dirname(dirname(__DIR__)) . '/app/view/upload_result.php'; 
+        include dirname(dirname(__DIR__)) . '/app/view/UploadResult.php'; 
         include dirname(dirname(__DIR__)) . '/includes/footer.php';
     }
 }

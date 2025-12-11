@@ -1,5 +1,5 @@
 <?php
-// app/view/admin/user_edit.php
+// app/view/admin/UserEdit.php
 // Exibe formulário de edição de usuário (somente administradores tem acesso via AdminController::editUser)
 
 // $user está disponível do controller

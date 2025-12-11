@@ -1,11 +1,14 @@
-<div class="auditoria-container"> <!-- Reusing auditoria-container for general page styling -->
+<?php
+// app/dados/ViewNegociadas.php
+?>
+<div class="auditoria-container">
     <h2 class="form-section-title">
-        Intermediações Negociadas (Pós-Negociação)
+        Intermediações Negociadas
     </h2>
 
     <p class="mb-4">
         
-    <br>Esta tabela exibe os registros de títulos/intermediações <strong>após alguma negociação efetivada</strong>.</br>
+    <br>Esta tabela exibe os registros de títulos <strong>após alguma negociação efetivada</strong>.</br>
         
     <br>Apenas títulos com quantidade > 0 são exibidos nesta tabela.</br>
     

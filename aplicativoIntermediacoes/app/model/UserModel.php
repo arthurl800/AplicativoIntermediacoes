@@ -1,7 +1,6 @@
 <?php
 // app/model/UserModel.php
 
-// MUDANÇA: Corrigindo o caminho de inclusão para garantir que Database seja encontrado
 // O Database está em /app/util/Database.php
 require_once dirname(__DIR__) . '/util/Database.php'; 
 
@@ -56,8 +55,6 @@ class UserModel {
         $stmt->execute([':username' => $username]);
 
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Não é mais necessário ajustar o campo password, já está correto no SELECT
         
         return $user ?: null;
     }

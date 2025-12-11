@@ -4,7 +4,7 @@
 // Define o caminho base do projeto (o diretório acima da pasta 'app')
 $base_dir = dirname(dirname(__DIR__));
 
-// Inclusão das dependências
+// Inclui dependências
 require_once $base_dir . '/app/model/UserModel.php';
 require_once $base_dir . '/app/util/AuthManager.php';
 
@@ -25,12 +25,12 @@ class AuthController {
             AuthManager::redirectTo('index.php?controller=dashboard&action=index');
         }
 
-        // As mensagens de erro e sucesso são capturadas na view, mas 
-        // a inclusão do header/footer é necessária aqui.
+        // As mensagens de erro e sucesso são capturadas na view, 
+        // a inclusão do header e footer é necessária aqui.
         
         $base_dir = dirname(dirname(__DIR__));
         include $base_dir . '/includes/header.php';
-        include $base_dir . '/app/view/auth/login_form.php'; 
+        include $base_dir . '/app/view/auth/LoginForm.php'; 
         include $base_dir . '/includes/footer.php';
     }
 
@@ -59,7 +59,7 @@ class AuthController {
 
     // Exibe o formulário de cadastro
     public function register() {
-        // Registro de novos usuários só pode ser realizado por administradores
+        // Registro de novos usuários. Este só pode ser realizado por administradores
         if (!$this->authManager->isAdmin()) {
             // Se o usuário não for admin (ou não estiver logado), negar acesso
             $_SESSION['auth_error'] = "Apenas administradores podem cadastrar novos usuários.";
@@ -69,7 +69,7 @@ class AuthController {
         
         $base_dir = dirname(dirname(__DIR__));
         include $base_dir . '/includes/header.php';
-        include $base_dir . '/app/view/auth/register_form.php'; 
+        include $base_dir . '/app/view/auth/RegisterForm.php'; 
         include $base_dir . '/includes/footer.php';
     }
 
@@ -79,19 +79,12 @@ class AuthController {
             AuthManager::redirectTo('index.php?controller=auth&action=register');
         }
         
-        // Apenas administradores podem criar novos usuários
-        if (!$this->authManager->isAdmin()) {
-            $_SESSION['auth_error'] = "Acesso negado. Apenas administradores podem criar usuários.";
-            AuthManager::redirectTo('index.php?controller=auth&action=login');
-            return;
-        }
-
         $username = trim($_POST['username'] ?? '');
-        $cpf = trim($_POST['cpf'] ?? ''); // Campo LIMPO (apenas dígitos)
+        $cpf = trim($_POST['cpf'] ?? ''); // CPF sem formatação.
         $password = $_POST['password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
 
-        // 1. Validação básica (front-end deve ter a validação primária)
+        // 1. Validação básica pois o front-end deve ter a validação primária
         if (empty($username) || empty($cpf) || empty($password) || empty($confirmPassword)) {
             $_SESSION['auth_error'] = "Todos os campos são obrigatórios.";
             AuthManager::redirectTo('index.php?controller=auth&action=register');

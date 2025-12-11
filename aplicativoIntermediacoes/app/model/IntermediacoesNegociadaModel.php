@@ -1,6 +1,7 @@
 <?php
 // app/model/IntermediacoesNegociadaModel.php
 
+// Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
 
 class IntermediacoesNegociadaModel {
@@ -25,15 +26,15 @@ class IntermediacoesNegociadaModel {
     public function copyNegotiatedRecords(array $criteria = [], int $quantidadeNegociada = 0): bool {
         try {
             $this->pdo->beginTransaction();
-            // Only attempt transfer when at least one meaningful criterion is provided
+            // Só tenta a transferência quando for fornecido pelo menos um critério significativo.
             if ((count(array_filter($criteria)) > 0 || isset($criteria['source_id'])) && $quantidadeNegociada > 0) {
-                // Transfer the negotiated quantity from source records into the target table.
-                // This will insert rows into the target table representing the sold quantities,
-                // even if the source row becomes 0 afterwards.
+                // Transfere a quantidade negociada dos registros fonte para a tabela destino.
+                // Isso irá inserir linhas na tabela destino representando as quantidades vendidas,
+                // mesmo que a linha fonte fique com 0 depois.
                 $this->transferNegotiatedQuantity($criteria, $quantidadeNegociada);
             } else {
-                // If no specific criteria provided, fallback to copying any remaining positive records
-                // that are not already present in the target table (legacy behavior).
+                // Se nenhum critério específico for fornecido, o sistema recorrerá à cópia de quaisquer registros positivos restantes
+                // que ainda não estejam presentes na tabela de destino (comportamento legado).
                 $copySql = "INSERT INTO {$this->targetTable} (
                     Conta, Nome, Mercado, Sub_Mercado, Ativo, Produto, CNPJ, Emissor,
                     Data_Compra, Taxa_Compra, Taxa_Emissao, Vencimento, Quantidade,

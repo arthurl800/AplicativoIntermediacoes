@@ -1,6 +1,5 @@
-<!-- app/view/admin/UserManagement.php -->
 <?php
-// Copiado de user_management.php para PascalCase
+// app/view/admin/UserManagement.php
 ?>
 <main>
     <h2>Administração de Usuários</h2>
@@ -41,8 +40,8 @@
             <div class="form-group">
                 <label for="role">Nível de Acesso:</label>
                 <select id="role" name="role" class="input-field">
-                    <option value="user">Usuário Comum (Monetização)</option>
-                    <option value="admin">Administrador (Sem Limitações)</option>
+                    <option value="user">Usuário Comum</option>
+                    <option value="admin">Administrador</option>
                 </select>
             </div>
             
@@ -52,9 +51,4 @@
         </form>
     </div>
 
-    <!-- Aqui entraria a listagem de usuários existentes -->
-    <div class="mt-4">
-        <h3 class="form-section-title">Usuários Ativos (Listagem)</h3>
-        <p>A listagem e edição de usuários será implementada na próxima etapa.</p>
-    </div>
 </main>

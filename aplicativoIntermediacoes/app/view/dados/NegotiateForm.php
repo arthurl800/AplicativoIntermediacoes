@@ -1,3 +1,6 @@
+<?php
+// app/dados/NegotiateForm.php
+?>
 <script type="module"> 
     // Firebase Imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -19,7 +22,7 @@
     const negotiateForm = document.getElementById('negotiate-form');
     let submitButton; // Será definido em initializeFirebase
 
-    // --- Funções de Formatação e Unformatação ---
+    // --- Funções de Formatação ---
     
     // Formata um valor numérico para moeda brasileira (R$) (espera valor desescalado, ex: 10000.50)
     function formatCurrency(value) {
@@ -148,8 +151,8 @@
                 data[key] = value;
             });
             
-            // Adicionar campos calculados e garantir que são números (desescalados)
-            // OBS: O Firestore deve receber valores desescalados em R$ ou em % (base 100)
+            // Adicionar campos calculados e garantir que são números formatados corretamente
+            // OBS: O Firestore deve receber valores em R$ ou em % (base 100)
             data.preco_unitario_saida = unformatCurrency(document.getElementById('preco_unitario_saida').value);
             data.ganho_saida = unformatCurrency(document.getElementById('ganho_saida').value);
             data.rentabilidade_saida = unformatRate(document.getElementById('rentabilidade_saida').value); 
@@ -271,7 +274,7 @@
     <h2 class="form-section-title">Formulário de Negociação</h2>
 
     <?php 
-        // Desescalando os valores numéricos para exibição no cabeçalho
+        // Valores numéricos para exibição no cabeçalho
         $vl_bruto_display = number_format(($data['valor_bruto'] ?? 0) / 100, 2, ',', '.');
         $vl_liquido_display = number_format(($data['valor_liquido'] ?? 0) / 100, 2, ',', '.');
         $taxa_display = number_format(($data['taxa_emissao'] ?? 0) / 1, 2, ',', '.') . ' %';

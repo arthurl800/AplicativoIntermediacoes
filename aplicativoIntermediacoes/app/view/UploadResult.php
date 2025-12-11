@@ -1,3 +1,7 @@
+<?php
+// app/view/upload/UploadResult.php
+?>
+
 <main>
     <h2>Resultado da Importação</h2>
 

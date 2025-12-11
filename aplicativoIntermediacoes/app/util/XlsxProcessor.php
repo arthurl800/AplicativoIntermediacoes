@@ -1,7 +1,7 @@
 <?php
 // app/util/XlsxProcessor.php
 require_once __DIR__ . '/IFileProcessor.php';
-// Certifique-se de que o autoloader do Composer foi incluído no index.php
+// Certifica-se de que o autoloader do Composer foi incluído no index.php
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class XlsxProcessor implements IFileProcessor {

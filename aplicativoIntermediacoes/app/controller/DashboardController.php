@@ -1,6 +1,7 @@
 <?php
 // app/controller/DashboardController.php
 
+// Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/IntermediacaoModel.php';
 
@@ -23,7 +24,7 @@ class DashboardController {
 
         // Carrega o header/footer
         include dirname(dirname(__DIR__)) . '/includes/header.php';
-        include dirname(dirname(__DIR__)) . '/app/view/dashboard/index.php'; 
+        include dirname(dirname(__DIR__)) . '/app/view/dashboard/painel.php'; 
         include dirname(dirname(__DIR__)) . '/includes/footer.php';
     }
 
@@ -37,7 +38,7 @@ class DashboardController {
         $records = $interModel->getAllData(); // retorna até 100
 
         include dirname(dirname(__DIR__)) . '/includes/header.php';
-        include dirname(dirname(__DIR__)) . '/app/view/dashboard/negotiate_form.php';
+        include dirname(dirname(__DIR__)) . '/app/view/dashboard/NegotiateForm.php';
         include dirname(dirname(__DIR__)) . '/includes/footer.php';
     }
 
@@ -91,7 +92,7 @@ class DashboardController {
             $qtd = (int)($be['qtd'] ?? 0);
             if ($qtd <= 0) continue;
 
-            // If totalAssignedQty differs from originalQty, scale proportionally to preserve total
+            // Se a quantidade total atribuída for diferente da quantidade original, ajuste proporcionalmente para preservar o total.
             $proportion = ($totalAssignedQty > 0) ? ($qtd / $totalAssignedQty) : 0;
             $valor_bruto_calc = ($totalAssignedQty > 0) ? ($proportion * ($record['Valor_Bruto'] ?? 0)) : ($qtd * $unitValue);
 
@@ -105,7 +106,7 @@ class DashboardController {
             ];
         }
 
-        // Prepare result variables for the view
+        // Preparar variáveis ​​de resultado para a visualização
         $result = [
             'record' => $record,
             'seller' => [

@@ -1,13 +1,16 @@
+<?php
+// app/view/negociacoes/PainelNegociacoes.php
+?>
 <main>
     <div class="page-header mb-4">
-        <h1>💰 Painel de Negociações</h1>
-        <p class="text-muted">Gerencie as intermediações disponíveis e processe vendas de títulos</p>
+        <h1> Painel de Negociações</h1>
+        <p class="text-muted">Gerenciamento das intermediações disponíveis</p>
     </div>
 
     <!-- Mensagem de Sucesso -->
     <?php if (isset($_SESSION['mensagem_sucesso'])): ?>
         <div class="alert alert-success mb-4">
-            ✅ <?= htmlspecialchars($_SESSION['mensagem_sucesso']) ?>
+            <?= htmlspecialchars($_SESSION['mensagem_sucesso']) ?>
         </div>
         <?php unset($_SESSION['mensagem_sucesso']); ?>
     <?php endif; ?>
@@ -33,7 +36,7 @@
                 
                 <div class="form-group flex-1">
                     <label>&nbsp;</label>
-                    <button type="submit" class="btn btn-primary btn-block">🔍 Filtrar</button>
+                    <button type="submit" class="btn btn-primary btn-block"> Filtrar</button>
                 </div>
             </form>
         </div>
@@ -80,7 +83,7 @@
                             <td>
                                 <a href="index.php?controller=negociacao&action=formulario&id=<?= $neg['id'] ?>" 
                                    class="btn btn-small btn-primary">
-                                    🤝 Negociar
+                                     Negociar
                                 </a>
                             </td>
                         </tr>
@@ -89,12 +92,16 @@
             </table>
         </div>
     <?php else: ?>
-        <div class="alert alert-warning text-center">
-            <h2>⚠️ Nenhuma Negociação Disponível</h2>
-            <p>Não há intermediações disponíveis no momento. Importe dados para começar.</p>
-            <a href="index.php?controller=upload&action=index" class="btn btn-primary mt-3">
-                📥 Importar Dados
-            </a>
-        </div>
+    <div style="background-color: #fffde7; 
+                border: 2px solid #f9a825; 
+                border-radius: 8px; 
+                padding: 20px; 
+                text-align: center;">
+        <h2> Nenhuma Negociação Disponível</h2>
+        <p>Não há intermediações disponíveis no momento. Importe dados para começar.</p>
+        <a href="index.php?controller=upload&action=index" class="btn btn-primary mt-3">
+            Importar Dados
+        </a>
+    </div>
     <?php endif; ?>
 </main>

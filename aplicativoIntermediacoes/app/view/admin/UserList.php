@@ -1,10 +1,15 @@
-<!-- app/view/admin/UserList.php -->
 <?php
-// Copiado de user_list.php para PascalCase refatorado
+// app/view/admin/UserList.php
 ?>
 <main>
     <h2>Gerenciamento de Usuários</h2>
 
+    <div style="margin-bottom: 20px;">
+        <a href="index.php?controller=auth&action=register" class="btn btn-primary" 
+           style="text-decoration: none; padding: 10px 15px; background-color: #007bff; color: white; border-radius: 5px; display: inline-block;">
+            Criar Novo Usuário
+        </a>
+    </div>
     <?php if (isset($message) && $message): ?>
         <div style="padding: 10px; margin-bottom: 15px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px;">
             <?= htmlspecialchars($message) ?>
@@ -37,16 +42,19 @@
                             ?>
                             
                             <?php if (!$isCurrentUser): ?>
-                                <!-- Formulário para deletar o usuário -->
                                 <form action="index.php?controller=admin&action=deleteUser" method="POST" style="display: inline;">
                                     <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                                    <button type="submit" class="action-btn btn-delete" 
+                                    <button type="submit" class="btn btn-danger" 
                                             onclick="return confirm('Tem certeza que deseja remover o usuário \'<?= htmlspecialchars($u['username']) ?>\'?');">
                                         Remover
                                     </button>
                                 </form>
-                                <!-- Em um sistema completo, haveria um botão para editar -->
-                                <button class="action-btn btn-edit" disabled>Editar</button>
+                                
+                                <a href="index.php?controller=admin&action=editUser&id=<?= $u['id'] ?>" 
+                                 class="btn btn-secondary" style="text-decoration: none;">
+                                  Editar
+                                </a>
+                                                             
                             <?php else: ?>
                                 <span style="color: #007bff; font-weight: bold;">(Conta Logada)</span>
                             <?php endif; ?>

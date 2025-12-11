@@ -1,5 +1,5 @@
 <?php
-// includes/header.php - Header Moderno com Tema Verde e Dourado
+// includes/header.php
 
 // Inicia a sessão se ainda não estiver iniciada
 if (session_status() == PHP_SESSION_NONE) {
@@ -21,41 +21,83 @@ $user = $authManager->getCurrentUser();
     <meta name="description" content="Sistema de Intermediações Financeiras">
     <title>Sistema de Intermediações Financeiras</title>
     
-    <!-- CSS Moderno -->
+    <!-- CSS -->
     <link rel="stylesheet" href="assets/css/theme.css">
     <link rel="stylesheet" href="includes/responsive-table.css">
 </head>
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>💰 Intermediações Financeiras</h1>
+            <a href="index.php?controller=dashboard&action=index" class="logo"> 
+            <h1>Gerenciamento Financeiro</h1>
+            </a>
             
             <nav class="nav">
                 <?php if ($isLoggedIn): ?>
                     <!-- Links de Navegação Principal -->
-                    <a href="index.php?controller=dashboard&action=index">📊 Painel</a>
-                    <a href="index.php?controller=upload&action=index">📥 Importar</a>
-                    <a href="index.php?controller=negociacao&action=painel">💰 Negociações</a>
-                    <a href="index.php?controller=dados&action=visualizar_negociadas">✅ Negociadas</a>
-                    <a href="index.php?controller=relatorio&action=auditoria">📋 Auditoria</a>
+                    
+                    <a href="index.php?controller=dashboard&action=index" 
+                    style="border-bottom: 2px solid white;
+                    padding-bottom: 2px;
+                    text-decoration: none;
+                    border-radius: 0;
+                    color: white;">
+                    Painel </a>
+
+                    <a href="index.php?controller=upload&action=index" 
+                    style="border-bottom: 2px solid goldenrod;
+                    padding-bottom: 2px;
+                    text-decoration: none;
+                    border-radius: 0;
+                    color: gold;">
+                    Importar</a>
+
+                    <a href="index.php?controller=negociacao&action=painel"
+                    style="border-bottom: 2px solid cyan;
+                    padding-bottom: 2px;
+                    text-decoration: none;
+                    border-radius: 0;
+                    color: cyan;">
+                    A Realizar</a>
+                    
+                    <a href="index.php?controller=dados&action=visualizar_negociadas"
+                    style="border-bottom: 2px solid white;
+                    padding-bottom: 2px;
+                    text-decoration: none;
+                    border-radius: 0;
+                    color: white;">
+                    Efetivadas</a>
+
+                    <a href="index.php?controller=relatorio&action=auditoria"
+                    style="border-bottom: 2px solid red;
+                    padding-bottom: 2px;
+                    text-decoration: none;
+                    border-radius: 0;
+                    color: red;">
+                    Auditoria</a>
                     
                     <?php if ($user && $user['role'] === 'admin'): ?>
-                        <a href="index.php?controller=admin&action=users">👥 Usuários</a>
+                        <a href="index.php?controller=admin&action=users" 
+                        style="border-bottom: 2px solid white;
+                        padding-bottom: 2px;
+                        text-decoration: none;
+                        border-radius: 0;
+                        color: white;">
+                        Usuários</a>
                     <?php endif; ?>
 
                 <?php endif; ?>
-
+                <!-- Verificar se é necessário incluir algum menu no cabeçalho, sem login do usuário-->
                 <?php if (!$isLoggedIn): ?>
-                    <a href="index.php?controller=auth&action=login">🔐 Login</a>
-                    <a href="index.php?controller=auth&action=register">📝 Cadastro</a>
+                 <!--   <a href="index.php?controller=auth&action=login"> Login</a> -->
                 <?php endif; ?>
             </nav>
 
             <!-- Informações do Usuário -->
             <?php if ($isLoggedIn): ?>
                 <div class="user-info">
-                    <span>👤 <?= htmlspecialchars($user['username'] ?? 'Usuário') ?></span>
-                    <a href="index.php?controller=auth&action=logout" class="logout-btn">🚪 SAIR</a>
+                    <span> <?= htmlspecialchars($user['username'] ?? 'Usuário') ?></span>
+                    <a href="index.php?controller=auth&action=logout" class="logout-btn"> SAIR</a>
                 </div>
             <?php endif; ?>
         </div>

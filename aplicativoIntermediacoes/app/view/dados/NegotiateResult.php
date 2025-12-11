@@ -1,3 +1,6 @@
+<?php
+// app/dados/NegotiateResult.php
+?>
 <main>
 	<h2>Resultado da Negociação</h2>
 

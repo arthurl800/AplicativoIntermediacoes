@@ -1,6 +1,7 @@
 <?php
 // app/model/NegociacaoModel.php
 
+// Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
 
 class NegociacaoModel {
@@ -86,13 +87,13 @@ class NegociacaoModel {
     }
 
     /**
-     * NOVOS MÉTODOS: Buscar dados de negociações da tabela INTERMEDIACOES
+     * NOVOS MÉTODOS: Buscar dados de negociações da tabela INTERMEDIACOES_TABLE;
      * com conversão automática de datas (AAAA-MM-DD → DD/MM/AAAA)
      * e valores (centavos → R$)
      */
 
     /**
-     * Lista todas as negociações disponíveis na tabela INTERMEDIACOES
+     * Lista todas as negociações disponíveis na tabela INTERMEDIACOES_TABLE;
      * com dados convertidos para exibição
      */
     public function listarIntermedicoesDisponiveis(int $limit = 100): array {

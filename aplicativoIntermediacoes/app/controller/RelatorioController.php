@@ -1,4 +1,7 @@
 <?php
+// app/controller/RelatorioController.php
+
+// Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/AuditoriaModel.php';
@@ -16,46 +19,6 @@ class RelatorioController {
         }
     }
 
-    public function dashboard() {
-        $base_dir = dirname(dirname(__DIR__));
-        $resumo = $this->auditoriaModel->getResumoExecutivo();
-        $porOperador = $this->auditoriaModel->getEstatisticasPorOperador();
-        $porProduto = $this->auditoriaModel->getEstatisticasPorProduto();
-        $porData = $this->auditoriaModel->getEstatisticasPorData(30);
-        
-        $dataOperadores = json_encode(array(
-            'labels' => array_column($porOperador, 'operador'),
-            'negociacoes' => array_column($porOperador, 'total_negociacoes'),
-            'valores' => array_column($porOperador, 'valor_saida_total')
-        ));
-        
-        $dataProdutos = json_encode(array(
-            'labels' => array_column($porProduto, 'Produto'),
-            'negociacoes' => array_column($porProduto, 'total_negociacoes'),
-            'valores' => array_column($porProduto, 'valor_saida_total')
-        ));
-        
-        $labels_dia = array();
-        $valores_dia = array();
-        $negs_dia = array();
-        
-        foreach ($porData as $d) {
-            $labels_dia[] = date('d/m', strtotime($d['data_negociacao']));
-            $valores_dia[] = $d['valor_saida_total'];
-            $negs_dia[] = $d['total_negociacoes'];
-        }
-        
-        $dataPorDia = json_encode(array(
-            'labels' => $labels_dia,
-            'valores' => $valores_dia,
-            'negociacoes' => $negs_dia
-        ));
-        
-        include $base_dir . '/includes/header.php';
-        include $base_dir . '/app/view/relatorio/dashboard.php';
-        include $base_dir . '/includes/footer.php';
-    }
-
     public function auditoria() {
         $base_dir = dirname(dirname(__DIR__));
         $limit = 50;
@@ -64,7 +27,7 @@ class RelatorioController {
         $auditoria = $this->auditoriaModel->getAuditoriaCompleta($limit, $offset);
         
         include $base_dir . '/includes/header.php';
-        include $base_dir . '/app/view/relatorio/auditoria.php';
+        include $base_dir . '/app/view/relatorio/Auditoria.php';
         include $base_dir . '/includes/footer.php';
     }
 

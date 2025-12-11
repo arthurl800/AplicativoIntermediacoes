@@ -5,7 +5,7 @@ class Database {
     private static $instance = null;
     private $pdo;
 
-    // Configuração de Conexão (SQLite para simplicidade em ambiente de teste/local)
+    // Configuração de Conexão
     // O arquivo do banco será criado na raiz do projeto como 'app_data.db'
     private function __construct() {
         // Conecta apenas via MySQL usando config/database.php
@@ -21,7 +21,7 @@ class Database {
             $pass = $cfg['DB_PASS'] ?? '%$#';
             $charset = $cfg['DB_CHARSET'] ?? 'utf8';
 
-            // Use TCP/IP instead of socket for better compatibility
+            // Utiliza TCP/IP ao invés de socket para melhor compatibilidade
             $actualHost = ($host === 'localhost') ? '127.0.0.1' : $host;
             $dsn = "mysql:host={$actualHost};dbname={$db};charset={$charset}";
             $this->pdo = new PDO($dsn, $user, $pass, [
@@ -36,8 +36,6 @@ class Database {
             die("Erro ao configurar o banco de dados: " . $e->getMessage());
         }
     }
-
-    // Removido: inicialização automática de tabelas. Use DBeaver para gerenciar estrutura.
 
     /**
      * Retorna a instância única da classe Database.

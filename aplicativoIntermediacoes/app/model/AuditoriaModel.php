@@ -1,6 +1,7 @@
 <?php
 // app/model/AuditoriaModel.php
 
+// Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
 
 class AuditoriaModel {

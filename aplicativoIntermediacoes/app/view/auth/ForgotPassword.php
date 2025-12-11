@@ -1,6 +1,5 @@
-<!-- app/view/auth/ForgotPassword.php -->
 <?php
-// Copiado de forgot_password.php para PascalCase
+// app/view/auth/ForgotPassword.php
 ?>
 <main>
     <div class="form-container">

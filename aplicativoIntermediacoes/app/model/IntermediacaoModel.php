@@ -450,12 +450,12 @@ class IntermediacaoModel {
         $errors = [];
         $tableName = $this->getTableName();
 
-        // 1. Garante que a tabela tenha a coluna imported_at
+        // Garante que a tabela tenha a coluna imported_at
         $this->ensureImportedAtColumnExists();
         $available = $this->getAvailableColumns();
         $shouldInsertImportedAt = in_array('imported_at', $available, true);
         
-        // 2. Colunas esperadas para o INSERT
+        // Colunas esperadas para o INSERT
         $columns = [
             'Conta', 'Nome', 'Mercado', 'Sub_Mercado', 'Ativo',
             'Produto', 'CNPJ', 'Emissor', 'Data_Compra', 'Taxa_Compra',
@@ -465,12 +465,12 @@ class IntermediacaoModel {
             'ID_Registro'
         ];
 
-        // 3. Adiciona 'imported_at' à lista de colunas se existir
+        // Adiciona 'imported_at' à lista de colunas se existir
         if ($shouldInsertImportedAt) {
             $columns[] = 'imported_at';
         }
         
-        // 4. Prepara o SQL
+        // Prepara o SQL
         $placeholders = implode(', ', array_fill(0, count($columns), '?'));
         $columnNames = implode(', ', $columns);
 

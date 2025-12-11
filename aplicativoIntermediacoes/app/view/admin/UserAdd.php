@@ -1,5 +1,6 @@
 <?php
-// app/view/admin/user_add.php
+// app/view/admin/UserAdd.php
+
 // Formulário simples para administrador criar um novo usuário
 $error = $_SESSION['admin_message'] ?? null;
 unset($_SESSION['admin_message']);

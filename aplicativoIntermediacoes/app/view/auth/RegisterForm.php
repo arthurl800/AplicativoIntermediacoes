@@ -1,6 +1,5 @@
 <?php
 // app/view/auth/RegisterForm.php
-// Copiado de register_form.php e refatorado para PascalCase
 
 // A $auth_error e $auth_success devem ser passadas pelo Controller via $_SESSION, se existirem.
 $error = $_SESSION['auth_error'] ?? null;
@@ -51,10 +50,6 @@ unset($_SESSION['auth_error'], $_SESSION['auth_success']);
 
             <button type="submit" class="btn btn-primary">Cadastrar</button>
         </form>
-        
-        <p class="text-center mt-4">
-            Já tem conta? <a href="index.php?controller=auth&action=login" class="btn-link">Fazer Login</a>
-        </p>
     </div>
 </main>
 
