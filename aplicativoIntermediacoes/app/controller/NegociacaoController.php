@@ -1,7 +1,6 @@
 <?php
 // app/controller/NegociacaoController.php
 
-// Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/NegociacaoModel.php';
 
@@ -97,7 +96,7 @@ class NegociacaoController {
 
             $base_dir = dirname(dirname(__DIR__));
             include $base_dir . '/includes/header.php';
-            include $base_dir . '/app/view/negociacoes/Formulario.php';
+            include $base_dir . '/app/view/negociacoes/formulario.php';
             include $base_dir . '/includes/footer.php';
         } catch (Exception $e) {
             error_log("Erro ao carregar formulário de negociação: " . $e->getMessage());
@@ -138,7 +137,7 @@ class NegociacaoController {
                 return;
             }
 
-            // Recalcula TODOS os valores no servidor para garantir integridade
+            // Recalcula TODOS os valores no servidor
             $taxa_saida = (float)($_POST['taxa_saida'] ?? 0);
             $taxa_entrada = (float)($_POST['taxa_entrada'] ?? 0);
             $valor_bruto_saida_input = (float)($_POST['valor_bruto_saida'] ?? 0);

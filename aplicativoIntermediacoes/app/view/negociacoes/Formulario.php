@@ -119,62 +119,113 @@
         </div>
         <form method="POST" action="index.php?controller=negociacao&action=processar" class="card-body">
             <input type="hidden" name="negociacao_id" value="<?= (int)$negociacao['id'] ?>">
+            <input type="hidden" name="ID_Registro_Source" value="<?= htmlspecialchars($negociacao['ID_Registro'] ?? '') ?>">
 
-            <div class="grid grid-2">
-                <div>
-                    <div class="form-group">
-                        <label for="quantidade_vendida" class="form-label">
-                            Quantidade a Vender
-                            <small class="text-danger">*</small>
-                        </label>
-                        <input 
-                            type="number" 
-                            id="quantidade_vendida" 
-                            name="quantidade_vendida" 
-                            min="1" 
-                            max="<?= (int)$negociacao['quantidade_disponivel'] ?>" 
-                            required 
-                            placeholder="Ex: 5"
-                            class="form-control"
-                            onchange="atualizarPreview()">
-                        <small class="text-muted">
-                            Máximo: <strong><?= (int)$negociacao['quantidade_disponivel'] ?></strong> títulos
-                        </small>
+            <!-- VENDEDOR -->
+            <div class="card mb-3" style="background-color: #f5f5f5;">
+                <div class="card-header" style="background-color: #e8f5e9; font-weight: bold;">
+                    1. Vendedor
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-2">
+                        <div>
+                            <div class="form-group">
+                                <label for="quantidade_vendida" class="form-label">
+                                    Quantidade a Vender
+                                    <small class="text-danger">*</small>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    id="quantidade_vendida" 
+                                    name="quantidade_vendida" 
+                                    min="1" 
+                                    max="<?= (int)$negociacao['quantidade_disponivel'] ?>" 
+                                    required 
+                                    placeholder="Ex: 5"
+                                    class="form-control"
+                                    onchange="atualizarPreview()">
+                                <small class="text-muted">
+                                    Máximo: <strong><?= (int)$negociacao['quantidade_disponivel'] ?></strong> títulos
+                                </small>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="form-group">
+                                <label for="taxa_saida">Taxa de Saída (%)</label>
+                                <input type="number" step="0.01" id="taxa_saida" name="taxa_saida" class="form-control" value="0" onchange="atualizarPreview()">
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="taxa_saida">Taxa de Saída (%)</label>
-                        <input type="number" step="0.01" id="taxa_saida" name="taxa_saida" class="form-control" value="0" onchange="atualizarPreview()">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="valor_bruto_saida">Valor Bruto de Saída (R$)</label>
-                        <input type="number" step="0.01" id="valor_bruto_saida" name="valor_bruto_saida" class="form-control" value="" onchange="atualizarPreview()">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="valor_liquido_saida">Valor Líquido de Saída (R$)</label>
-                        <input type="number" step="0.01" id="valor_liquido_saida" name="valor_liquido_saida" class="form-control" value="">
+                    <div class="grid grid-2">
+                        <div>
+                            <div class="form-group">
+                                <label for="valor_bruto_saida">Valor Bruto de Saída (R$)</label>
+                                <input type="number" step="0.01" id="valor_bruto_saida" name="valor_bruto_saida" class="form-control" value="" onchange="atualizarPreview()">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="form-group">
+                                <label for="valor_liquido_saida">Valor Líquido de Saída (R$)</label>
+                                <input type="number" step="0.01" id="valor_liquido_saida" name="valor_liquido_saida" class="form-control" value="">
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div>
-                    <div class="form-group">
-                        <label for="taxa_entrada">Taxa de Entrada (%)</label>
-                        <input type="number" step="0.01" id="taxa_entrada" name="taxa_entrada" class="form-control" value="0" onchange="atualizarPreview()">
+            <!-- COMPRADOR -->
+            <div class="card mb-3" style="background-color: #f5f5f5;">
+                <div class="card-header" style="background-color: #e3f2fd; font-weight: bold;">
+                    2. Comprador
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-2">
+                        <div>
+                            <div class="form-group">
+                                <label for="taxa_entrada">Taxa de Entrada (%)</label>
+                                <input type="number" step="0.01" id="taxa_entrada" name="taxa_entrada" class="form-control" value="0" onchange="atualizarPreview()">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="form-group">
+                                <label for="valor_entrada">Valor de Entrada (R$)</label>
+                                <input type="number" step="0.01" id="valor_entrada" name="valor_entrada" class="form-control" value="" onchange="atualizarPreview()">
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="valor_entrada">Valor de Entrada (R$)</label>
-                        <input type="number" step="0.01" id="valor_entrada" name="valor_entrada" class="form-control" value="" onchange="atualizarPreview()">
+                    <div class="grid grid-2">
+                        <div>
+                            <div class="form-group">
+                                <label for="conta_comprador">Conta do Comprador</label>
+                                <input type="text" id="conta_comprador" name="conta_comprador" class="form-control" placeholder="Ex: 1001">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="form-group">
+                                <label for="nome_comprador">Nome do Cliente (Comprador)</label>
+                                <input type="text" id="nome_comprador" name="nome_comprador" class="form-control" placeholder="Ex: João Silva">
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
 
+            <!-- ASSESSOR -->
+            <div class="card mb-3" style="background-color: #f5f5f5;">
+                <div class="card-header" style="background-color: #fff3e0; font-weight: bold;">
+                    3. Assessor
+                </div>
+                <div class="card-body">
                     <div class="form-group">
-                        <label for="valor_plataforma">Valor da Plataforma (R$) - Assessor</label>
+                        <label for="valor_plataforma">Valor da Plataforma (R$)</label>
                         <input type="number" step="0.01" id="valor_plataforma" name="valor_plataforma" class="form-control" value="0" onchange="atualizarPreview()">
                     </div>
                 </div>
             </div>
+
+            <div class="grid grid-2">
 
             <div class="card mt-3">
                 <div class="card-header"><strong>Preview / Cálculos</strong></div>

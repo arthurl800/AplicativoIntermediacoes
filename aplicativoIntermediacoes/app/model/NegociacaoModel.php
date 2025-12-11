@@ -35,7 +35,7 @@ class NegociacaoModel {
     public function save(array $data): int {
         $sql = "INSERT INTO {$this->table} (
             Data_Registro,
-            Conta_Vendedor, Nome_Vendedor, Produto, Estrategia,
+            Conta_Vendedor, Nome_Vendedor, Produto, ID_Registro_Source, Estrategia,
             Quantidade_negociada, Valor_Bruto_Importado_Raw,
             Taxa_Saida, Valor_Bruto_Saida, Valor_Liquido_Saida, Preco_Unitario_Saida,
             Ganho_Saida, Rentabilidade_Saida,
@@ -44,7 +44,7 @@ class NegociacaoModel {
             Corretagem_Assessor, Roa_Assessor
         ) VALUES (
             NOW(),
-            :conta_vendedor, :nome_vendedor, :produto, :estrategia,
+            :conta_vendedor, :nome_vendedor, :produto, :id_registro_source, :estrategia,
             :quantidade_negociada, :valor_bruto_importado_raw,
             :taxa_saida, :valor_bruto_saida, :valor_liquido_saida, :preco_unitario_saida,
             :ganho_saida, :rentabilidade_saida,
@@ -55,10 +55,36 @@ class NegociacaoModel {
 
         try {
             $stmt = $this->pdo->prepare($sql);
+
+            // Normaliza ID_Registro_Source: aceita string vazia e converte para NULL,
+            // converte valores numéricos para inteiro antes de bindar.
+            $idRegistroSource = null;
+            if (isset($data['ID_Registro_Source'])) {
+                $raw = $data['ID_Registro_Source'];
+            } elseif (isset($data['id_registro_source'])) {
+                $raw = $data['id_registro_source'];
+            } else {
+                $raw = null;
+            }
+
+            if (is_string($raw)) {
+                $raw = trim($raw);
+                if ($raw === '') {
+                    $idRegistroSource = null;
+                } elseif (is_numeric($raw)) {
+                    $idRegistroSource = (int)$raw;
+                }
+            } elseif (is_numeric($raw)) {
+                $idRegistroSource = (int)$raw;
+            } else {
+                $idRegistroSource = null;
+            }
+
             $stmt->execute([
                 ':conta_vendedor' => $data['conta_vendedor'] ?? $data['conta'] ?? null,
                 ':nome_vendedor' => $data['nome_vendedor'] ?? $data['cliente'] ?? null,
                 ':produto' => $data['produto'] ?? $data['tipo'] ?? null,
+                ':id_registro_source' => $idRegistroSource,
                 ':estrategia' => $data['estrategia'] ?? null,
                 ':quantidade_negociada' => $data['quantidade_negociada'] ?? 0,
                 ':valor_bruto_importado_raw' => $data['valor_bruto_importado_raw'] ?? $data['valor_bruto_importado'] ?? 0,
@@ -141,6 +167,7 @@ class NegociacaoModel {
         try {
             $sql = "SELECT 
                         id,
+                        ID_Registro,
                         Conta as conta,
                         Nome as cliente,
                         Ativo as produto,
@@ -327,5 +354,97 @@ class NegociacaoModel {
     public function calcularRoa(float $corretagem, float $valor_entrada): float {
         if ($valor_entrada <= 0) return 0.0;
         return ($corretagem / $valor_entrada) * 100.0;
+    }
+
+    /**
+     * Transfere a quantidade negociada para INTERMEDIACOES_TABLE_NEGOCIADA
+     * com proporção dos valores (Valor_Bruto, IR, IOF, Valor_Liquido).
+     * Este método é chamado APÓS um INSERT bem-sucedido em NEGOCIACOES.
+     * 
+     * @param int $negociacao_id ID da negociação inserida em NEGOCIACOES
+     * @param string|int $id_registro_source ID_Registro da origem em INTERMEDIACOES_TABLE
+     * @param float $quantidade_negociada Quantidade que foi negociada
+     * @return bool true se transferência bem-sucedida
+     */
+    public function transferirParaNegociada(int $negociacao_id, $id_registro_source, float $quantidade_negociada): bool {
+        if (!$id_registro_source || $quantidade_negociada <= 0) {
+            error_log("transferirParaNegociada: ID_Registro_Source vazio ou quantidade inválida. source={$id_registro_source}, qty={$quantidade_negociada}");
+            return false;
+        }
+
+        try {
+            // 1) Busca o registro de origem
+            $sqlSource = "SELECT Conta, Nome, Mercado, Sub_Mercado, Ativo, Produto, CNPJ, Emissor,
+                            Data_Compra, Taxa_Compra, Taxa_Emissao, Vencimento, Quantidade,
+                            Valor_Bruto, IR, IOF, Valor_Liquido, Estrategia, Escritorio,
+                            Data_Registro, Data_Cotizacao_Prev, Tipo_Plano
+                         FROM {$this->tableIntermediacao}
+                         WHERE ID_Registro = :id_registro_source
+                         LIMIT 1";
+
+            $stmtSource = $this->pdo->prepare($sqlSource);
+            $stmtSource->execute([':id_registro_source' => $id_registro_source]);
+            $source = $stmtSource->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$source) {
+                error_log("transferirParaNegociada: Registro origem não encontrado. ID_Registro={$id_registro_source}");
+                return false;
+            }
+
+            // 2) Calcula proporção: quanto negociar / quantidade original
+            $src_quantidade = (float)($source['Quantidade'] ?? 0);
+            if ($src_quantidade <= 0) {
+                error_log("transferirParaNegociada: Quantidade origem é zero ou negativa. ID_Registro={$id_registro_source}");
+                return false;
+            }
+
+            $ratio = $quantidade_negociada / $src_quantidade;
+            // Garante que não copiamos mais que a quantidade original
+            $qtd_a_copiar = min($quantidade_negociada, $src_quantidade);
+
+            // 3) Insere proporcional em INTERMEDIACOES_TABLE_NEGOCIADA
+            $sqlInsert = "INSERT INTO INTERMEDIACOES_TABLE_NEGOCIADA
+                         (Conta, Nome, Mercado, Sub_Mercado, Ativo, Produto, CNPJ, Emissor,
+                          Data_Compra, Taxa_Compra, Taxa_Emissao, Vencimento, Quantidade,
+                          Valor_Bruto, IR, IOF, Valor_Liquido, Estrategia, Escritorio,
+                          Data_Registro, Data_Cotizacao_Prev, Tipo_Plano, ID_Registro, Data_Importacao)
+                         VALUES
+                         (:conta, :nome, :mercado, :sub_mercado, :ativo, :produto, :cnpj, :emissor,
+                          :data_compra, :taxa_compra, :taxa_emissao, :vencimento, :quantidade,
+                          :valor_bruto, :ir, :iof, :valor_liquido, :estrategia, :escritorio,
+                          :data_registro, :data_cotizacao_prev, :tipo_plano, :id_registro_new, NOW())";
+
+            $stmtInsert = $this->pdo->prepare($sqlInsert);
+            $stmtInsert->execute([
+                ':conta' => $source['Conta'],
+                ':nome' => $source['Nome'],
+                ':mercado' => $source['Mercado'],
+                ':sub_mercado' => $source['Sub_Mercado'],
+                ':ativo' => $source['Ativo'],
+                ':produto' => $source['Produto'],
+                ':cnpj' => $source['CNPJ'],
+                ':emissor' => $source['Emissor'],
+                ':data_compra' => $source['Data_Compra'],
+                ':taxa_compra' => $source['Taxa_Compra'],
+                ':taxa_emissao' => $source['Taxa_Emissao'],
+                ':vencimento' => $source['Vencimento'],
+                ':quantidade' => $qtd_a_copiar,
+                ':valor_bruto' => round((float)($source['Valor_Bruto'] ?? 0) * $ratio, 2),
+                ':ir' => round((float)($source['IR'] ?? 0) * $ratio, 2),
+                ':iof' => round((float)($source['IOF'] ?? 0) * $ratio, 2),
+                ':valor_liquido' => round((float)($source['Valor_Liquido'] ?? 0) * $ratio, 2),
+                ':estrategia' => $source['Estrategia'],
+                ':escritorio' => $source['Escritorio'],
+                ':data_registro' => $source['Data_Registro'],
+                ':data_cotizacao_prev' => $source['Data_Cotizacao_Prev'],
+                ':tipo_plano' => $source['Tipo_Plano'],
+                ':id_registro_new' => $negociacao_id, // usa o ID da negociação como ID_Registro na tabela negociada
+            ]);
+
+            return true;
+        } catch (PDOException $e) {
+            error_log("Erro ao transferir para NEGOCIADA: " . $e->getMessage());
+            return false;
+        }
     }
 }
