@@ -55,48 +55,14 @@ class NegociacaoController {
                 return;
             }
 
-            // Preenche valores padrão para o formulário (cálculos iniciais)
-            $quantidade_disponivel = (int)($negociacao['quantidade_disponivel'] ?? 0);
-            $valor_bruto_centavos = $negociacao['valor_bruto_centavos'] ?? 0;
-            // Tenta interpretar valor bruto importado como centavos (se inteiro grande) ou decimal
-            $valor_bruto_importado_real = 0.0;
-            if (is_numeric($valor_bruto_centavos)) {
-                // Se vier como inteiro grande (centavos), divide por 100
-                if ((int)$valor_bruto_centavos > 1000) {
-                    $valor_bruto_importado_real = ((float)$valor_bruto_centavos) / 100.0;
-                } else {
-                    $valor_bruto_importado_real = (float)$valor_bruto_centavos;
-                }
-            }
-
-            $preco_unitario_importado = ($quantidade_disponivel > 0) ? ($valor_bruto_importado_real / $quantidade_disponivel) : 0.0;
-
-            // Defaults que a view pode usar (cálculos iniciais em PHP)
-            $quantidade_vendida_default = ($quantidade_disponivel > 0) ? 1 : 0;
-            $unit_importado = ($quantidade_disponivel > 0) ? ($valor_bruto_importado_real / $quantidade_disponivel) : 0.0;
-            $bruto_saida_default = $unit_importado * $quantidade_vendida_default;
-            $taxa_saida_default = 0.0;
-            $valor_liquido_saida_default = $bruto_saida_default * (1 - ($taxa_saida_default / 100.0));
-            $custo_importado_total_default = $unit_importado * $quantidade_vendida_default;
-            $preco_unitario_vendedor_default = $this->negociacaoModel->calcularPrecoUnitarioSaida($valor_liquido_saida_default, $quantidade_vendida_default);
-            $ganho_vendedor_default = $this->negociacaoModel->calcularGanhoSaida($valor_liquido_saida_default, $custo_importado_total_default);
-            $rentabilidade_vendedor_default = $this->negociacaoModel->calcularRentabilidade($ganho_vendedor_default, $custo_importado_total_default);
-
-            $negociacao['preco_unitario_importado'] = number_format($preco_unitario_importado, 2, '.', '');
-            $negociacao['valor_bruto_saida_default'] = number_format($bruto_saida_default, 2, '.', '');
-            $negociacao['taxa_saida_default'] = number_format($taxa_saida_default, 2, '.', '');
-            $negociacao['valor_liquido_saida_default'] = number_format($valor_liquido_saida_default, 2, '.', '');
-            $negociacao['preco_unitario_vendedor'] = $preco_unitario_vendedor_default;
-            $negociacao['ganho_vendedor'] = $ganho_vendedor_default;
-            $negociacao['rentabilidade_vendedor'] = $rentabilidade_vendedor_default;
-            $negociacao['preco_unitario_comprador'] = 0.0;
-            $negociacao['corretagem_assessor'] = 0.0;
-            $negociacao['roa_assessor'] = 0.0;
-            $negociacao['valor_bruto_importado_raw'] = $valor_bruto_centavos;
+            // Não realizar cálculos no servidor: enviar apenas dados brutos para que o cliente (JS) faça todos os cálculos.
+            // Mantemos apenas os campos essenciais para a view renderizar e o JS operar.
+            $negociacao['valor_bruto_importado_raw'] = $negociacao['valor_bruto_centavos'] ?? 0;
+            $negociacao['quantidade_disponivel'] = (int)($negociacao['quantidade_disponivel'] ?? 0);
 
             $base_dir = dirname(dirname(__DIR__));
             include $base_dir . '/includes/header.php';
-            include $base_dir . '/app/view/negociacoes/formulario.php';
+            include $base_dir . '/app/view/negociacoes/Formulario.php';
             include $base_dir . '/includes/footer.php';
         } catch (Exception $e) {
             error_log("Erro ao carregar formulário de negociação: " . $e->getMessage());
@@ -137,40 +103,25 @@ class NegociacaoController {
                 return;
             }
 
-            // Recalcula TODOS os valores no servidor
+            // NÃO recalcular no servidor: aceitar os valores calculados no cliente (JS)
+            // Lemos os campos enviados pelo formulário (gerados pelo JS) e os persistimos como recebidos.
             $taxa_saida = (float)($_POST['taxa_saida'] ?? 0);
             $taxa_entrada = (float)($_POST['taxa_entrada'] ?? 0);
-            $valor_bruto_saida_input = (float)($_POST['valor_bruto_saida'] ?? 0);
+            $bruto_saida_total = (float)($_POST['valor_bruto_saida'] ?? 0);
+            $valor_liquido_saida = (float)($_POST['valor_liquido_saida'] ?? 0);
+            $preco_unitario_saida = (float)($_POST['preco_unitario_saida'] ?? 0);
+            $ganho_saida = (float)($_POST['ganho_saida'] ?? 0);
+            $rentabilidade_saida = (float)($_POST['rentabilidade_saida'] ?? 0);
+
             $valor_entrada_input = (float)($_POST['valor_entrada'] ?? 0);
+            $preco_unitario_entrada = (float)($_POST['preco_unitario_entrada'] ?? 0);
+
             $valor_plataforma = (float)($_POST['valor_plataforma'] ?? 0);
+            $corretagem_assessor = (float)($_POST['corretagem_assessor'] ?? $_POST['corretagem'] ?? 0);
+            $roa_assessor = (float)($_POST['roa_assessor'] ?? $_POST['roa'] ?? 0);
 
-            // Valor bruto importado vindo do registro (centavos possivelmente)
+            // Valor bruto importado vindo do registro (centavos possivelmente) - mantemos como fornecido pela origem
             $valor_bruto_centavos = $negociacao['valor_bruto_centavos'] ?? 0;
-            $valor_bruto_importado_real = $this->negociacaoModel->toReaisFloat($valor_bruto_centavos);
-
-            // Calcula unitário importado
-            $unit_importado = ($quantidade_disponivel > 0) ? ($valor_bruto_importado_real / $quantidade_disponivel) : 0.0;
-
-            // Determina bruto de saída total: preferir input explicitamente informado, caso contrário usar proporcional
-            $bruto_saida_total = ($valor_bruto_saida_input > 0) ? $valor_bruto_saida_input : ($unit_importado * $quantidade_vendida);
-
-            // Valor líquido após taxa de saída
-            $valor_liquido_saida = $bruto_saida_total * (1 - ($taxa_saida / 100.0));
-
-            // Custo importado proporcional para a quantidade vendida
-            $custo_importado_total = $unit_importado * $quantidade_vendida;
-
-            // Preço unitário e ganhos calculados via model
-            $preco_unitario_saida = $this->negociacaoModel->calcularPrecoUnitarioSaida($valor_liquido_saida, $quantidade_vendida);
-            $ganho_saida = $this->negociacaoModel->calcularGanhoSaida($valor_liquido_saida, $custo_importado_total);
-            $rentabilidade_saida = $this->negociacaoModel->calcularRentabilidade($ganho_saida, $custo_importado_total);
-
-            // Para comprador: usar valor_entrada_input se informado
-            $preco_unitario_entrada = ($valor_entrada_input > 0 && $quantidade_vendida > 0) ? ($valor_entrada_input / $quantidade_vendida) : 0.0;
-
-            // Corretagem e ROA do assessor
-            $corretagem_assessor = $this->negociacaoModel->calcularCorretagem($valor_plataforma);
-            $roa_assessor = $this->negociacaoModel->calcularRoa($corretagem_assessor, $valor_entrada_input);
 
             // Recolhe campos a salvar (usando valores calculados)
             $dataToSave = [

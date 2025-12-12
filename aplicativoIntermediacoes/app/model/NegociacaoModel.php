@@ -21,6 +21,54 @@ class NegociacaoModel {
     }
 
     /**
+     * Retorna negociações registradas na tabela `NEGOCIACOES` formatadas
+     * para consumo pela view de negociadas.
+     * Mapeia colunas internas para a estrutura esperada pela `ViewNegociadas.php`.
+     * @param int $limit
+     * @return array
+     */
+    public function getAllNegotiations(int $limit = 200): array {
+        try {
+            $sql = "SELECT 
+                        id,
+                        Data_Registro,
+                        Conta_Vendedor,
+                        Nome_Vendedor,
+                        Produto,
+                        Estrategia,
+                        Quantidade_negociada,
+                        Valor_Bruto_Importado_Raw,
+                        Taxa_Saida,
+                        Valor_Bruto_Saida,
+                        Valor_Liquido_Saida,
+                        Preco_Unitario_Saida,
+                        Ganho_Saida,
+                        Rentabilidade_Saida,
+                        Conta_Comprador,
+                        Nome_Comprador,
+                        Taxa_Entrada,
+                        Valor_Bruto_Entrada,
+                        Preco_Unitario_Entrada,
+                        Valor_Plataforma,
+                        Corretagem_Assessor,
+                        Roa_Assessor
+                    FROM {$this->table}
+                    ORDER BY Data_Registro DESC
+                    LIMIT :limit";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return $rows;
+        } catch (PDOException $e) {
+            error_log('Erro ao buscar negociações: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Persiste uma negociação completa na tabela NEGOCIACOES com todos os campos.
      * @param array $data Campos esperados conforme a estrutura NEGOCIACOES:
      *  - Conta_Vendedor, Nome_Vendedor, Produto, Estrategia

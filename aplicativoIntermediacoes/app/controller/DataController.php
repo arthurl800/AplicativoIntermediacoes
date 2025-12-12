@@ -255,10 +255,11 @@ class DataController {
     public function visualizar_negociadas() {
         $base_dir = dirname(dirname(__DIR__));
         
-        require_once $base_dir . '/app/model/IntermediacoesNegociadaModel.php';
-        $negModel = new IntermediacoesNegociadaModel();
+        // Carrega negociações da tabela `NEGOCIACOES` para exibição
+        require_once $base_dir . '/app/model/NegociacaoModel.php';
+        $negModel = new NegociacaoModel();
         
-        $data = $negModel->getAllNegotiated(200);
+        $data = $negModel->getAllNegotiations(200);
         
         include $base_dir . '/includes/header.php';
         include $base_dir . '/app/view/dados/ViewNegociadas.php';

@@ -470,28 +470,42 @@ class IntermediacaoModel {
             $columns[] = 'imported_at';
         }
         
-        // Prepara o SQL
+        // Prepara o SQL para a tabela de origem
         $placeholders = implode(', ', array_fill(0, count($columns), '?'));
         $columnNames = implode(', ', $columns);
+        $sqlSource = "INSERT INTO {$tableName} ({$columnNames}) VALUES ({$placeholders})";
 
-        $sql = "INSERT INTO {$tableName} ({$columnNames}) VALUES ({$placeholders})";
+        // Prepara colunas e SQL para a tabela negociada (destino)
+        $targetTable = 'INTERMEDIACOES_TABLE_NEGOCIADA';
+        // Para a tabela negociada, removemos a coluna interna 'imported_at' (se presente)
+        $targetColumns = $columns;
+        if (($key = array_search('imported_at', $targetColumns, true)) !== false) {
+            unset($targetColumns[$key]);
+            $targetColumns = array_values($targetColumns);
+        }
+        // A tabela negociada possui 'Data_Importacao' — usamos NOW() no insert (adicionamos coluna explicitamente)
+        $targetColumns[] = 'Data_Importacao';
+        $placeholdersTarget = implode(', ', array_fill(0, count($targetColumns), '?'));
+        $columnNamesTarget = implode(', ', $targetColumns);
+        $sqlTarget = "INSERT INTO {$targetTable} ({$columnNamesTarget}) VALUES ({$placeholdersTarget})";
 
         try {
-            $stmt = $this->pdo->prepare($sql);
+            $stmtSource = $this->pdo->prepare($sqlSource);
+            $stmtTarget = $this->pdo->prepare($sqlTarget);
 
             try {
                 $this->pdo->beginTransaction();
-                
+
                 $now = date('Y-m-d H:i:s');
 
                 foreach ($records as $index => $row) {
                     $values = [];
-                    // Processa os valores da linha
+                    // Preserve comportamento legado: cada $row é uma lista de valores na ordem do arquivo
                     foreach ($row as $value) {
                         $values[] = ($value === '' || $value === null) ? null : $value;
                     }
-                    
-                    // Adiciona o timestamp 'imported_at' se a coluna estiver sendo inserida
+
+                    // Adiciona 'imported_at' ao source se existir
                     if ($shouldInsertImportedAt) {
                         $values[] = $now;
                     }
@@ -503,11 +517,31 @@ class IntermediacaoModel {
                         continue;
                     }
 
-                    if (!$stmt->execute($values)) {
-                        // Captura o erro específico do statement
-                        $errorInfo = $stmt->errorInfo();
-                        throw new PDOException("Erro ao inserir linha " . ($index + 1) . ": Código SQLSTATE {$errorInfo[0]} - Driver Error: {$errorInfo[1]} - Message: {$errorInfo[2]}");
+                    // Executa insert na tabela de origem
+                    if (!$stmtSource->execute($values)) {
+                        $errorInfo = $stmtSource->errorInfo();
+                        throw new PDOException("Erro ao inserir linha " . ($index + 1) . ": Código SQLSTATE {$errorInfo[0]} - Message: {$errorInfo[2]}");
                     }
+
+                    // Prepara valores para o insert na tabela negociada
+                    $valuesTarget = $values;
+                    // Remove imported_at do final se foi adicionado
+                    if ($shouldInsertImportedAt) {
+                        array_pop($valuesTarget);
+                    }
+                    // Adiciona Data_Importacao (NOW)
+                    $valuesTarget[] = $now;
+
+                    if (count($valuesTarget) !== count($targetColumns)) {
+                        // Isso não deveria ocorrer, mas registramos e fazemos rollback
+                        throw new PDOException("Mismatch target values/columns on row " . ($index + 1));
+                    }
+
+                    if (!$stmtTarget->execute($valuesTarget)) {
+                        $errorInfo = $stmtTarget->errorInfo();
+                        throw new PDOException("Erro ao inserir na tabela negociada linha " . ($index + 1) . ": Código SQLSTATE {$errorInfo[0]} - Message: {$errorInfo[2]}");
+                    }
+
                     $insertedCount++;
                 }
 
@@ -517,7 +551,6 @@ class IntermediacaoModel {
                     $this->pdo->rollBack();
                 }
                 $errors[] = "Erro na transação de inserção: " . $e->getMessage();
-
             }
         } catch (PDOException $e) {
             $errors[] = "Erro na preparação do SQL para inserção: " . $e->getMessage();

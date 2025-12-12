@@ -6,6 +6,7 @@ require_once dirname(dirname(__DIR__)) . '/app/model/IntermediacaoModel.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/IFileProcessor.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/CsvProcessor.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/XlsxProcessor.php';
+require_once dirname(dirname(__DIR__)) . '/app/model/IntermediacoesNegociadaModel.php';
 
 class UploadController {
     private $model;
@@ -75,8 +76,19 @@ class UploadController {
                 // Salva os dados no DB (Model)
                 $db_result = $this->model->insertBatch($records);
 
+                // Após inserir na tabela principal, copia registros para a tabela de negociadas
+                // (copia todos os registros com Quantidade > 0 que ainda não existam na tabela negociada)
+                try {
+                    $negCopyModel = new IntermediacoesNegociadaModel();
+                    $negCopyModel->copyNegotiatedRecords([], 0);
+                } catch (Exception $e) {
+                    // não interrompe o fluxo principal em caso de falha na cópia; apenas loga
+                    error_log('Falha ao copiar registros para INTERMEDIACOES_TABLE_NEGOCIADA: ' . $e->getMessage());
+                    $result['errors'][] = 'Falha ao copiar registros para a tabela negociada: ' . $e->getMessage();
+                }
+
                 $result['success'] = true;
-                $result['message'] = "Arquivo '{$arquivo_nome}' processado com sucesso! **{$db_result['inserted']}** registros inseridos.";
+                $result['message'] = "Importado com sucesso {$db_result['inserted']} linhas";
                 $result['errors'] = $db_result['errors'];
 
                 // Armazena um preview (header + head 25 rows) na sessão para ser exibido na página de visualização de dados
@@ -84,9 +96,8 @@ class UploadController {
                     session_start();
                 }
                 $_SESSION['last_import_preview'] = ['header' => $header, 'rows' => array_slice($records, 0, 25)];
-                // Redireciona para a visualização de dados para integração (mostra preview)
-                header('Location: index.php?controller=dados&action=visualizar&preview=1');
-                exit;
+                // Mantém o preview na sessão para visualização posterior
+                // A view de resultado exibirá a mensagem de sucesso.
 
             } catch (\Exception $e) {
                 $result['message'] = "Erro de Processamento: " . $e->getMessage();
