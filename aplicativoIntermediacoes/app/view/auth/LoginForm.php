@@ -39,10 +39,13 @@
     </br>    
     </form>
     
+    <!-- Link para a página de recuperação de senha
     <div class="form-actions-bottom">
         <a href="index.php?controller=auth&action=forgotPassword" class="btn-link">
             Esqueci a senha
         </a>
     </div>
+     -->
+
     </div>
 </main>
