@@ -1,3 +1,4 @@
+# Dockerfile for a PHP web application with Apache
 FROM php:8.1-apache
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html
