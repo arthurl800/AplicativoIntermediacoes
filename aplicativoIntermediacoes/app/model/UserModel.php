@@ -2,18 +2,16 @@
 // app/model/UserModel.php
 
 // O Database está em /app/util/Database.php
-require_once dirname(__DIR__) . '/util/Database.php'; 
+require_once dirname(__DIR__) . '/util/Database.php';
+require_once dirname(dirname(__DIR__)) . '/config/Config.php';
 
 class UserModel {
     private $db;
     private $table;
-    private $passwordColumn = 'Senha';
 
     public function __construct() {
-        // Obtém a instância única da conexão PDO e o nome da tabela do config
         $this->db = Database::getInstance()->getConnection();
-        $cfg = include dirname(dirname(__DIR__)) . '/config/database.php';
-        $this->table = $cfg['USER_TABLE'];
+        $this->table = Config::tableNameUsers();
     }
 
     /**

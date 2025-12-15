@@ -3,21 +3,17 @@
 
 // Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
+require_once dirname(dirname(__DIR__)) . '/config/Config.php';
 
 class NegociacaoModel {
     private $pdo;
-    private $table = 'NEGOCIACOES';
-    private $tableIntermediacao = 'INTERMEDIACOES_TABLE'; // Tabela de intermediações para leitura
+    private $table;
+    private $tableIntermediacao;
 
     public function __construct() {
         $this->pdo = Database::getInstance()->getConnection();
-        
-        // Obtém o nome da tabela da configuração se disponível
-        $configFile = dirname(dirname(__DIR__)) . '/config/database.php';
-        if (file_exists($configFile)) {
-            $cfg = include $configFile;
-            $this->tableIntermediacao = $cfg['TABLE_NAME'] ?? 'INTERMEDIACOES_TABLE';
-        }
+        $this->table = Config::tableNameNegociacoes();
+        $this->tableIntermediacao = Config::tableNameIntermediacoes();
     }
 
     /**

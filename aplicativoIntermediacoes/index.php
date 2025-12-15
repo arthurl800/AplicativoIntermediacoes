@@ -8,6 +8,7 @@ ini_set('display_errors', 1);
 
 // Carrega as classes externas (PhpSpreadsheet) e as classes internas
 require 'vendor/autoload.php';
+require_once __DIR__ . '/config/Config.php';
 
 // Inclui Controllers
 require_once __DIR__ . '/app/controller/UploadController.php';

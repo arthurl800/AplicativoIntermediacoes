@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 // Importa a classe de utilitário de banco de dados
 require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
+require_once dirname(dirname(__DIR__)) . '/config/Config.php';
 
 class IntermediacaoModel {
     private PDO $pdo;
@@ -18,11 +19,9 @@ class IntermediacaoModel {
         try {
             // Inicializa a conexão PDO através do Singleton da classe Database
             $this->pdo = Database::getInstance()->getConnection();
-            
-            // Tenta obter o nome da tabela do config
-            $configFile = dirname(dirname(__DIR__)) . '/config/database.php';
-            $cfg = file_exists($configFile) ? include $configFile : [];
-            $this->tableName = $cfg['TABLE_NAME'] ?? 'INTERMEDIACOES';
+
+            // Obtém o nome da tabela a partir da configuração centralizada
+            $this->tableName = Config::tableNameIntermediacoes();
         } catch (PDOException $e) {
             error_log("Falha ao inicializar o modelo de intermediações: " . $e->getMessage());
             throw new Exception("Falha ao inicializar o modelo de intermediações.");
@@ -476,7 +475,7 @@ class IntermediacaoModel {
         $sqlSource = "INSERT INTO {$tableName} ({$columnNames}) VALUES ({$placeholders})";
 
         // Prepara colunas e SQL para a tabela negociada (destino)
-        $targetTable = 'INTERMEDIACOES_TABLE_NEGOCIADA';
+        $targetTable = Config::tableNameIntermediacoesNegociada();
         // Para a tabela negociada, removemos a coluna interna 'imported_at' (se presente)
         $targetColumns = $columns;
         if (($key = array_search('imported_at', $targetColumns, true)) !== false) {
