@@ -13,29 +13,20 @@ ini_set('log_errors', 1); // Habilitar o registro de erros em um arquivo de log
 require 'vendor/autoload.php';
 require_once __DIR__ . '/config/Config.php';
 
-// Inclui Controllers
-require_once __DIR__ . '/app/controller/UploadController.php';
-require_once __DIR__ . '/app/controller/AuthController.php';
-require_once __DIR__ . '/app/controller/DashboardController.php';
-require_once __DIR__ . '/app/controller/AdminController.php';
-require_once __DIR__ . '/app/controller/DataController.php';
-require_once __DIR__ . '/app/controller/RelatorioController.php';
-require_once __DIR__ . '/app/controller/NegociacaoController.php';
-
 // Roteamento Simples: determina qual Controller e Ação (método) executar
 $controllerName = $_GET['controller'] ?? 'auth'; // Padrão AGORA é 'auth'
 $actionName     = $_GET['action'] ?? 'login';    // Padrão AGORA é 'login'
 
 // Mapeamento de Controllers
 $controllers = [
-    'upload'      => UploadController::class,
-    'auth'        => AuthController::class,
-    'dashboard'   => DashboardController::class,
-    'admin'       => AdminController::class,
-    'dados'       => DataController::class,
-    'data'        => DataController::class,
-    'relatorio'   => RelatorioController::class,
-    'negociacao'  => NegociacaoController::class,
+    'upload'      => App\Controller\UploadController::class,
+    'auth'        => App\Controller\AuthController::class,
+    'dashboard'   => App\Controller\DashboardController::class,
+    'admin'       => App\Controller\AdminController::class,
+    'dados'       => App\Controller\DataController::class,
+    'data'        => App\Controller\DataController::class,
+    'relatorio'   => App\Controller\RelatorioController::class,
+    'negociacao'  => App\Controller\NegociacaoController::class,
 ];
 
 if (isset($controllers[$controllerName])) {

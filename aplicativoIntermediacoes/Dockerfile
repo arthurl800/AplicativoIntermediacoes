@@ -13,7 +13,7 @@ RUN composer install --no-dev --no-interaction --no-scripts --no-plugins --optim
 
 # Estágio 2: Construir a imagem final da aplicação
 # Usamos a imagem oficial do PHP com Apache. A versão 8.1 é requerida pelo phpspreadsheet.
-FROM php:8.1-apache
+FROM php:8.3-apache
 
 # Habilita o módulo de rewrite do Apache para o .htaccess funcionar
 RUN a2enmod rewrite
