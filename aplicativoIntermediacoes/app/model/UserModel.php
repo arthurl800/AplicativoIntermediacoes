@@ -1,9 +1,12 @@
 <?php
 // app/model/UserModel.php
 
-// O Database está em /app/util/Database.php
-require_once dirname(__DIR__) . '/util/Database.php';
-require_once dirname(dirname(__DIR__)) . '/config/Config.php';
+namespace App\Model;
+
+use App\Util\Database;
+use Config\Config;
+use PDO;
+use PDOException;
 
 class UserModel {
     private $db;
