@@ -1,8 +1,11 @@
 <?php
 // index.php
 ini_set('memory_limit', '512M');
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+
+// Configuração de erros para o ambiente de PRODUÇÃO
+error_reporting(0); // Não exibir erros
+ini_set('display_errors', 0); // Desabilitar a exibição de erros
+ini_set('log_errors', 1); // Habilitar o registro de erros em um arquivo de log
 
 // Este é o único arquivo acessível diretamente, agindo como o roteador (Router).
 
