@@ -1,12 +1,12 @@
 # Dockerfile for a PHP web application with Apache
-FROM php:8.1-apache
+FROM php:8.3-apache
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        libzip-dev unzip git curl libonig-dev zlib1g-dev libxml2-dev \
-    && docker-php-ext-install pdo pdo_mysql mbstring zip xml \
+        libzip-dev unzip git curl libonig-dev zlib1g-dev libxml2-dev libgd-dev \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip xml gd \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
