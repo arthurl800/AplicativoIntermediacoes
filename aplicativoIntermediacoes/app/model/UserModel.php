@@ -51,13 +51,17 @@ class UserModel {
      * @return array|null Dados do usuário ou null se não encontrado.
      */
     public function findByUsername(string $username): ?array {
-        $sql = "SELECT id, Nome as username, Senha as password, CPF as cpf, Funcao as role FROM {$this->table} WHERE Nome = :username";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':username' => $username]);
-
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        return $user ?: null;
+        try {
+            $sql = "SELECT id, Nome as username, Senha as password, CPF as cpf, Funcao as role FROM {$this->table} WHERE Nome = :username";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':username' => $username]);
+    
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $user ?: null;
+        } catch (PDOException $e) {
+            error_log("PDO EXCEPTION: Erro ao buscar usuário por nome: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -65,9 +69,14 @@ class UserModel {
      * @return array Lista de todos os usuários.
      */
     public function findAll(): array {
-        $sql = "SELECT id, Nome as username, CPF as cpf, Funcao as role FROM {$this->table} ORDER BY id ASC";
-        $stmt = $this->db->query($sql);
-        return $stmt->fetchAll();
+        try {
+            $sql = "SELECT id, Nome as username, CPF as cpf, Funcao as role FROM {$this->table} ORDER BY id ASC";
+            $stmt = $this->db->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("PDO EXCEPTION: Erro ao buscar todos os usuários: " . $e->getMessage());
+            return [];
+        }
     }
     
     /**
@@ -92,11 +101,16 @@ class UserModel {
      * @return array|null
      */
     public function findById(int $id): ?array {
-        $sql = "SELECT id, Nome as username, CPF as cpf, Funcao as role FROM {$this->table} WHERE id = :id LIMIT 1";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        try {
+            $sql = "SELECT id, Nome as username, CPF as cpf, Funcao as role FROM {$this->table} WHERE id = :id LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            error_log("PDO EXCEPTION: Erro ao buscar usuário por ID: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**

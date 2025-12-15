@@ -5,17 +5,18 @@ namespace App\Controller;
 
 use App\Model\UserModel;
 use App\Util\AuthManager;
-
-// TODO: Implementar um mecanismo de renderização de views para evitar includes diretos.
+use App\Util\View;
 
 class AuthController {
     private $userModel;
     private $authManager;
+    private $view;
 
     public function __construct() {
-        // Assegura que o UserModel e AuthManager são instanciados
+        // Assegura que as dependências são instanciadas
         $this->userModel = new UserModel();
         $this->authManager = new AuthManager();
+        $this->view = new View();
     }
 
     // Exibe o formulário de login
@@ -25,13 +26,7 @@ class AuthController {
             AuthManager::redirectTo('/?controller=dashboard&action=index');
         }
 
-        // As mensagens de erro e sucesso são capturadas na view, 
-        // a inclusão do header e footer é necessária aqui.
-        
-        $base_dir = dirname(dirname(__DIR__)); // TODO: Remover após implementar renderizador de view
-        include $base_dir . '/includes/header.php';
-        include $base_dir . '/app/view/auth/LoginForm.php'; 
-        include $base_dir . '/includes/footer.php';
+        $this->view->render('auth/LoginForm', ['title' => 'Login']);
     }
 
     // Processa a submissão do formulário de login
@@ -68,10 +63,7 @@ class AuthController {
             return;
         }
         
-        $base_dir = dirname(dirname(__DIR__)); // TODO: Remover após implementar renderizador de view
-        include $base_dir . '/includes/header.php';
-        include $base_dir . '/app/view/auth/RegisterForm.php'; 
-        include $base_dir . '/includes/footer.php';
+        $this->view->render('auth/RegisterForm', ['title' => 'Registrar Novo Usuário']);
     }
 
     // Processa a submissão do formulário de cadastro
@@ -103,26 +95,21 @@ class AuthController {
             return;
         }
 
-        // 2. Tenta criar o usuário
+        // 2. Verifica se o usuário já existe ANTES de tentar criar
+        if ($this->userModel->findByUsername($username)) {
+            $_SESSION['auth_error'] = "O nome de usuário '{$username}' já está em uso.";
+            AuthManager::redirectTo('/?controller=auth&action=register');
+            return;
+        }
+
+        // 3. Tenta criar o usuário
         if ($this->userModel->create($username, $password, $cpf)) {
-            // Sucesso no cadastro
-            $_SESSION['auth_success'] = "Usuário {$username} cadastrado com sucesso!";
+            $_SESSION['auth_success'] = "Usuário '{$username}' cadastrado com sucesso!";
             AuthManager::redirectTo('/?controller=auth&action=login');
         } else {
-            // Falha no cadastro (Pode ser duplicidade, erro de SQL, etc.)
-            
-            // Tentativa de dar um feedback mais preciso ao usuário
-            $userExists = $this->userModel->findByUsername($username);
-            
-            if ($userExists) {
-                 $_SESSION['auth_error'] = "O nome de usuário '{$username}' já está em uso.";
-            } else {
-                // Se não for duplicidade, o erro é mais crítico (conexão, sintaxe SQL, permissão).
-                // O erro real estará no log do servidor (via error_log no UserModel).
-                $_SESSION['auth_error'] = "Erro interno ao cadastrar o usuário. Por favor, tente novamente.";
-            }
-            
-            // Redireciona de volta para o formulário de cadastro com a mensagem de erro
+            // Se a criação falhar agora, sabemos que não é por duplicidade.
+            // O erro real estará no log do servidor (via error_log no UserModel).
+            $_SESSION['auth_error'] = "Erro interno ao cadastrar o usuário. Por favor, tente novamente.";
             AuthManager::redirectTo('/?controller=auth&action=register');
         }
     }
