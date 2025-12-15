@@ -8,29 +8,33 @@ class Database {
     // Configuração de Conexão
     // O arquivo do banco será criado na raiz do projeto como 'app_data.db'
     private function __construct() {
-        // Conecta apenas via MySQL usando config/database.php
         try {
-            $configFile = dirname(dirname(__DIR__)) . '/config/database.php';
-            if (!file_exists($configFile)) {
-                throw new Exception("Arquivo de configuração do banco não encontrado: {$configFile}");
-            }
-            $cfg = include $configFile;
-            $host = $cfg['DB_HOST'] ?? 'localhost';
-            $db   = $cfg['DB_NAME'] ?? '';
-            $user = $cfg['DB_USER'] ?? '';
-            $pass = $cfg['DB_PASS'] ?? '%$#';
-            $charset = $cfg['DB_CHARSET'] ?? 'utf8';
+            // Utiliza a classe Config para ler as variáveis de ambiente
+            $host = Config::dbHost();
+            $db   = Config::dbName();
+            $user = Config::dbUser();
+            $pass = Config::dbPassword();
+            $port = Config::get('DB_PORT', 3306); // Porta padrão do MySQL
+            $driver = Config::get('DB_DRIVER', 'mysql'); // 'mysql' ou 'pgsql'
 
-            // Utiliza TCP/IP ao invés de socket para melhor compatibilidade
-            $actualHost = ($host === 'localhost') ? '127.0.0.1' : $host;
-            $dsn = "mysql:host={$actualHost};dbname={$db};charset={$charset}";
+            $dsn = '';
+            if ($driver === 'mysql') {
+                // DSN para MySQL
+                $dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
+            } elseif ($driver === 'pgsql') {
+                // DSN para PostgreSQL
+                $dsn = "pgsql:host={$host};port={$port};dbname={$db}";
+            } else {
+                throw new Exception("Driver de banco de dados '{$driver}' não suportado.");
+            }
+
             $this->pdo = new PDO($dsn, $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
         } catch (PDOException $e) {
             error_log("Database Connection Error: " . $e->getMessage());
-            die("Erro de conexão com o banco de dados MySQL. Detalhe: " . $e->getMessage());
+            die("Erro de conexão com o banco de dados. Detalhe: " . $e->getMessage());
         } catch (Exception $e) {
             error_log("Database Setup Error: " . $e->getMessage());
             die("Erro ao configurar o banco de dados: " . $e->getMessage());
