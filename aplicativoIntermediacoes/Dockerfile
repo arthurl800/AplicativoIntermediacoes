@@ -8,7 +8,8 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 
 # Instala as dependências de produção e otimiza o autoloader
-RUN composer install --no-dev --no-interaction --no-scripts --no-plugins --optimize-autoloader
+# Ignora platform-reqs porque as extensões estarão disponíveis no estágio final
+RUN composer install --no-dev --no-interaction --no-scripts --no-plugins --optimize-autoloader --ignore-platform-reqs
 
 
 # Estágio 2: Construir a imagem final da aplicação
