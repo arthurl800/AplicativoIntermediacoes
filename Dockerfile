@@ -4,8 +4,8 @@ FROM composer:2 as composer
 
 WORKDIR /app
 
-# Copia os arquivos de definição de dependências
-COPY composer.json composer.lock ./
+# Copia os arquivos de definição de dependências (do subdiretório aplicativoIntermediacoes)
+COPY aplicativoIntermediacoes/composer.json aplicativoIntermediacoes/composer.lock ./
 
 # Instala as dependências de produção e otimiza o autoloader
 # Ignora platform-reqs porque as extensões estarão disponíveis no estágio final
@@ -31,8 +31,8 @@ RUN apt-get update && apt-get install -y \
 # Copia as dependências instaladas do estágio 'composer'
 COPY --from=composer /app/vendor/ /var/www/html/vendor/
 
-# Copia o código-fonte da aplicação para o diretório do Apache
-COPY . /var/www/html/
+# Copia o código-fonte da aplicação (do subdiretório aplicativoIntermediacoes) para o diretório do Apache
+COPY aplicativoIntermediacoes/ /var/www/html/
 
 # Garante que o usuário do Apache (www-data) tenha permissão nos arquivos
 RUN chown -R www-data:www-data /var/www/html
