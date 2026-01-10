@@ -493,12 +493,13 @@ class IntermediacaoModel {
             $stmtSource = $this->pdo->prepare($sqlSource);
             $stmtTarget = $this->pdo->prepare($sqlTarget);
 
-            try {
-                $this->pdo->beginTransaction();
+            $now = date('Y-m-d H:i:s');
 
-                $now = date('Y-m-d H:i:s');
-
-                foreach ($records as $index => $row) {
+            // MODIFICAÇÃO: Processa cada linha individualmente em sua própria transação
+            foreach ($records as $index => $row) {
+                try {
+                    $this->pdo->beginTransaction();
+                    
                     $values = [];
                     // Preserve comportamento legado: cada $row é uma lista de valores na ordem do arquivo
                     foreach ($row as $value) {
@@ -511,16 +512,31 @@ class IntermediacaoModel {
                     }
 
                     if (count($values) !== count($columns)) {
-                        $msg = "Linha " . ($index + 1) . ": número incorreto de colunas (" . count($values) . " de " . count($columns) . " esperadas).";
-                        error_log("IMPORT ERROR: " . $msg . " - valores=" . print_r($values, true));
+                        $msg = "Linha " . ($index + 2) . ": número incorreto de colunas (" . count($values) . " de " . count($columns) . " esperadas).";
+                        error_log("IMPORT ERROR: " . $msg);
                         $errors[] = $msg;
+                        $this->pdo->rollBack();
                         continue;
                     }
 
                     // Executa insert na tabela de origem
                     if (!$stmtSource->execute($values)) {
                         $errorInfo = $stmtSource->errorInfo();
-                        throw new PDOException("Erro ao inserir linha " . ($index + 1) . ": Código SQLSTATE {$errorInfo[0]} - Message: {$errorInfo[2]}");
+                        
+                        // Verifica se é erro de duplicata (código 23000) - agora detecta pela chave composta
+                        if ($errorInfo[0] == '23000') {
+                            $ativo = $values[4] ?? 'N/A';        // Ativo (índice 4)
+                            $dataCompra = $values[8] ?? 'N/A';   // Data_Compra (índice 8)
+                            $quantidade = $values[12] ?? 'N/A';  // Quantidade (índice 12)
+                            $msg = "Linha " . ($index + 2) . ": Registro duplicado (Ativo: {$ativo}, Data: {$dataCompra}, Qtd: {$quantidade} já existe)";
+                        } else {
+                            $msg = "Linha " . ($index + 2) . ": Erro ao inserir - {$errorInfo[2]}";
+                        }
+                        
+                        error_log("IMPORT ERROR: " . $msg);
+                        $errors[] = $msg;
+                        $this->pdo->rollBack();
+                        continue;
                     }
 
                     // Prepara valores para o insert na tabela negociada
@@ -533,25 +549,35 @@ class IntermediacaoModel {
                     $valuesTarget[] = $now;
 
                     if (count($valuesTarget) !== count($targetColumns)) {
-                        // Isso não deveria ocorrer, mas registramos e fazemos rollback
-                        throw new PDOException("Mismatch target values/columns on row " . ($index + 1));
+                        $msg = "Linha " . ($index + 2) . ": Erro de mapeamento de colunas para tabela negociada";
+                        error_log("IMPORT ERROR: " . $msg);
+                        $errors[] = $msg;
+                        $this->pdo->rollBack();
+                        continue;
                     }
 
                     if (!$stmtTarget->execute($valuesTarget)) {
                         $errorInfo = $stmtTarget->errorInfo();
-                        throw new PDOException("Erro ao inserir na tabela negociada linha " . ($index + 1) . ": Código SQLSTATE {$errorInfo[0]} - Message: {$errorInfo[2]}");
+                        $msg = "Linha " . ($index + 2) . ": Erro ao inserir na tabela negociada - {$errorInfo[2]}";
+                        error_log("IMPORT ERROR: " . $msg);
+                        $errors[] = $msg;
+                        $this->pdo->rollBack();
+                        continue;
                     }
 
+                    $this->pdo->commit();
                     $insertedCount++;
+                    
+                } catch (PDOException $e) {
+                    if ($this->pdo->inTransaction()) {
+                        $this->pdo->rollBack();
+                    }
+                    $msg = "Linha " . ($index + 2) . ": " . $e->getMessage();
+                    error_log("IMPORT ERROR: " . $msg);
+                    $errors[] = $msg;
                 }
-
-                $this->pdo->commit();
-            } catch (PDOException $e) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
-                $errors[] = "Erro na transação de inserção: " . $e->getMessage();
             }
+            
         } catch (PDOException $e) {
             $errors[] = "Erro na preparação do SQL para inserção: " . $e->getMessage();
         }

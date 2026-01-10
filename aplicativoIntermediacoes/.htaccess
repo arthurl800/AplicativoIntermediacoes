@@ -1,0 +1,26 @@
+# Configurações de memória e upload para processar arquivos grandes
+php_value memory_limit 2048M
+php_value max_execution_time 300
+php_value upload_max_filesize 100M
+php_value post_max_size 100M
+
+# Habilita compressão para melhor performance
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Proteção de diretórios
+Options -Indexes
+
+# Redireciona tudo para index.php (front controller)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /aplicativoIntermediacoes/
+    
+    # Permite acesso a arquivos estáticos
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Redireciona para index.php
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>

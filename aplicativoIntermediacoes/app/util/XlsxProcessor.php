@@ -25,33 +25,33 @@ class XlsxProcessor implements IFileProcessor {
             throw new Exception("Falha no upload do arquivo.");
         }
 
-        // O IOFactory detecta automaticamente o tipo de arquivo (XLSX, XLS, ODS)
-        $spreadsheet = IOFactory::load($filePath);
-        $sheet = $spreadsheet->getActiveSheet();
+        // Aumenta o limite de memória temporariamente para este processo
+        $oldMemoryLimit = ini_get('memory_limit');
+        ini_set('memory_limit', '1024M');
         
-        $rows = [];
-        $header = null;
-        $isFirstRow = true;
+        try {
+            // Configura o leitor para usar menos memória
+            $reader = IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true);  // Ignora formatação, lê apenas dados
+            
+            // Carrega o arquivo
+            $spreadsheet = $reader->load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            $rows = [];
+            $header = null;
+            $isFirstRow = true;
 
-        // Itera pelas linhas
-        foreach ($sheet->getRowIterator() as $row) {
-            $rowData = [];
-            $cellIterator = $row->getCellIterator();
-            $cellIterator->setIterateOnlyExistingCells(false);
+            // Itera pelas linhas
+            foreach ($sheet->getRowIterator() as $row) {
+                $rowData = [];
+                $cellIterator = $row->getCellIterator();
+                $cellIterator->setIterateOnlyExistingCells(false);
 
-            // Itera pelas células na linha
-            foreach ($cellIterator as $cell) {
-                // Converte o valor da célula para o formato correto (especialmente datas)
-                $value = $cell->getCalculatedValue();
-
-                // Trata valores de data/hora do Excel (que são números float)
-                if (\PhpOffice\PhpSpreadsheet\Shared\Date::isDateTime($cell)) {
-                    // Se for data, formata para 'Y-m-d' (formato MySQL DATE)
-                    $value = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+                // Itera pelas células na linha
+                foreach ($cellIterator as $cell) {
+                    $rowData[] = $cell->getValue();
                 }
-
-                $rowData[] = $value;
-            }
 
             // Garante o número correto de colunas e limita
             $rowData = array_pad($rowData, $this->expectedColumns, null);
@@ -73,6 +73,27 @@ class XlsxProcessor implements IFileProcessor {
             }
 
             if ($hasData && count($rowData) === $this->expectedColumns) {
+                // Converte datas do Excel (números seriais) para formato MySQL
+                // Data_Compra (índice 8)
+                if (is_numeric($rowData[8]) && $rowData[8] > 1) {
+                    $rowData[8] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rowData[8])->format('Y-m-d');
+                }
+                
+                // Vencimento (índice 11)
+                if (is_numeric($rowData[11]) && $rowData[11] > 1) {
+                    $rowData[11] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rowData[11])->format('Y-m-d');
+                }
+                
+                // Data_Registro (índice 19)
+                if (is_numeric($rowData[19]) && $rowData[19] > 1) {
+                    $rowData[19] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rowData[19])->format('Y-m-d');
+                }
+                
+                // Data_Cotizacao_Prev (índice 20)
+                if (is_numeric($rowData[20]) && $rowData[20] > 1) {
+                    $rowData[20] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rowData[20])->format('Y-m-d');
+                }
+                
                 // Trata valores numéricos
                 $rowData[12] = (int)$rowData[12];  // Quantidade como inteiro
                 $rowData[13] = (float)str_replace(['R$', '.', ','], ['', '', '.'], $rowData[13]); // Valor_Bruto
@@ -87,7 +108,20 @@ class XlsxProcessor implements IFileProcessor {
                 $rows[] = $rowData;
             }
         }
-
+        
+        // Libera memória do spreadsheet
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+        
         return ['header' => $header, 'rows' => $rows];
+        
+        } catch (Exception $e) {
+            // Restaura o limite de memória original em caso de erro
+            ini_set('memory_limit', $oldMemoryLimit);
+            throw $e;
+        } finally {
+            // Restaura o limite de memória original
+            ini_set('memory_limit', $oldMemoryLimit);
+        }
     }
 }

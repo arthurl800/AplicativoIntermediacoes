@@ -59,12 +59,23 @@
 
         // Inputs Principais
         const qNegociada = parseFloat(document.getElementById('quantidade_negociada').value) || 0;
-        // vBrutoImportado é o valor RAW (x100) vindo do PHP. Precisa ser desescalado para o cálculo.
-        const vBrutoImportadoRaw = parseFloat(document.getElementById('valor_bruto_importado').value) || 0; 
-        const vBrutoImportadoDesescalado = vBrutoImportadoRaw / 100;
+        const qMaxima = parseFloat(document.getElementById('quantidade_maxima').value) || 1;
+        
+        // Valores importados TOTAIS (RAW x100 vindo do PHP) - precisam ser desescalados
+        const vBrutoImportadoTotalRaw = parseFloat(document.getElementById('valor_bruto_importado').value) || 0; 
+        const vBrutoImportadoTotal = vBrutoImportadoTotalRaw / 100;
+        const vLiquidoImportadoTotalRaw = parseFloat(document.getElementById('valor_liquido_importado').value) || 0;
+        const vLiquidoImportadoTotal = vLiquidoImportadoTotalRaw / 100;
+        
+        // Calcula valores UNITÁRIOS do investimento original
+        const vBrutoUnitarioOriginal = vBrutoImportadoTotal / qMaxima;
+        const vLiquidoUnitarioOriginal = vLiquidoImportadoTotal / qMaxima;
+        
+        // Calcula valores PROPORCIONAIS à quantidade negociada
+        const vBrutoImportadoProporcional = vBrutoUnitarioOriginal * qNegociada;
+        const vLiquidoImportadoProporcional = vLiquidoUnitarioOriginal * qNegociada;
         
         // Vendedor Inputs (valores desescalados em R$)
-        // Aqui é onde o valor do input é lido. Se for R$ 10.000,00, será lido como 10000.00
         const taxaSaida = unformatRate(document.getElementById('taxa_saida').value);
         const vBrutoSaida = unformatCurrency(document.getElementById('valor_bruto_saida').value);
         const vLiquidoSaida = unformatCurrency(document.getElementById('valor_liquido_saida').value);
@@ -77,23 +88,23 @@
 
         // --- CÁLCULOS DO VENDEDOR ---
 
-        // Preço Unitário de Saída = Valor Líquido Saída / Quantidade
+        // Preço Unitário de Saída = Valor Bruto Saída / Quantidade
         let precoUnitarioSaida = 0;
         if (qNegociada > 0) {
-            precoUnitarioSaida = vLiquidoSaida / qNegociada; 
+            precoUnitarioSaida = vBrutoSaida / qNegociada; 
         }
         document.getElementById('preco_unitario_saida').value = formatCurrency(precoUnitarioSaida);
         
-        // Ganho = Valor Líquido Saída - Valor Bruto Importado (desescalado)
-        const ganho = vLiquidoSaida - vBrutoImportadoDesescalado;
+        // Ganho = Valor Líquido Saída - Valor Líquido Investido PROPORCIONAL
+        const ganho = vLiquidoSaida - vLiquidoImportadoProporcional;
         document.getElementById('ganho_saida').value = formatCurrency(ganho);
         document.getElementById('ganho_saida').classList.toggle('text-green-600', ganho >= 0);
         document.getElementById('ganho_saida').classList.toggle('text-red-600', ganho < 0);
 
-        // Rentabilidade = Ganho / Valor da Plataforma (se vPlataforma > 0)
+        // Rentabilidade = Ganho / Valor Líquido Investido PROPORCIONAL
         let rentabilidadeSaida = 0;
-        if (vPlataforma > 0) {
-            rentabilidadeSaida = (ganho / vPlataforma) * 100; // Resultado em % (base 100) 
+        if (vLiquidoImportadoProporcional > 0) {
+            rentabilidadeSaida = (ganho / vLiquidoImportadoProporcional) * 100; 
         }
         document.getElementById('rentabilidade_saida').value = formatRateDisplay(rentabilidadeSaida);
 
@@ -319,6 +330,7 @@
     <input type="hidden" name="emissor" value="<?= htmlspecialchars($data['emissor'] ?? ($data['CNPJ'] ?? '')) ?>">
     <input type="hidden" name="vencimento" value="<?= htmlspecialchars($data['vencimento_raw'] ?? ($data['vencimento'] ?? '')) ?>">
         <input type="hidden" id="valor_bruto_importado" name="valor_bruto_importado" value="<?= htmlspecialchars($data['valor_bruto'] ?? 0) ?>">
+        <input type="hidden" id="valor_liquido_importado" name="valor_liquido_importado" value="<?= htmlspecialchars($data['valor_liquido'] ?? 0) ?>">
         <!-- Indica que o formulário deve ser submetido ao servidor (desabilita handler Firestore) -->
         <input type="hidden" name="server_side" value="1">
         <input type="hidden" id="quantidade_maxima" value="<?= $quantidade_max ?>">
@@ -362,7 +374,7 @@
                 <input type="text" id="ganho_saida" class="input-field read-only-field text-xl font-bold" readonly value="R$ 0,00">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Rentabilidade (Ganho / Plataforma):</label>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Rentabilidade (Ganho / Investido):</label>
                 <input type="text" id="rentabilidade_saida" class="input-field read-only-field" readonly value="0,00 %">
             </div>
         </div>

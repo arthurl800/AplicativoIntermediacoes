@@ -44,8 +44,9 @@ class UploadController {
     public function processUpload() {
 
         // --- OTIMIZAÇÃO DE PERFORMANCE PARA ARQUIVOS GRANDES ---
-        set_time_limit(180); // Aumenta o limite de tempo para 3 minutos
-        ini_set('memory_limit', '512M'); // Aumenta o limite de memória
+        set_time_limit(300); // Aumenta o limite de tempo para 5 minutos
+        ini_set('memory_limit', '2048M'); // Aumenta o limite de memória para 2GB
+        gc_enable(); // Habilita coleta de lixo
         // -------------------------------------------------------
 
         $result = ['success' => false, 'message' => '', 'errors' => []];
@@ -75,9 +76,21 @@ class UploadController {
                 if (empty($records)) {
                     throw new Exception("Nenhum dado válido encontrado no arquivo. Verifique o conteúdo e o cabeçalho.");
                 }
+                
+                // Log para debug
+                error_log("UPLOAD: Total de linhas lidas do arquivo: " . count($records));
+                
+                // Força coleta de lixo após processar o arquivo
+                gc_collect_cycles();
 
                 // Salva os dados no DB (Model)
                 $db_result = $this->model->insertBatch($records);
+                
+                // Log do resultado
+                error_log("UPLOAD: Linhas inseridas: " . $db_result['inserted'] . " | Erros: " . count($db_result['errors']));
+                if (!empty($db_result['errors'])) {
+                    error_log("UPLOAD: Detalhes dos erros: " . implode(" | ", array_slice($db_result['errors'], 0, 5)));
+                }
 
                 // Após inserir na tabela principal, copia registros para a tabela de negociadas
                 // (copia todos os registros com Quantidade > 0 que ainda não existam na tabela negociada)
