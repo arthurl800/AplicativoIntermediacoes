@@ -38,7 +38,7 @@
                         <td><?= htmlspecialchars($u['role']) ?></td>
                         <td>
                             <?php 
-                                $isCurrentUser = ($u['id'] == ($authManager->getCurrentUser()['id'] ?? null));
+                                $isCurrentUser = ($u['id'] == ($currentUser['id'] ?? null));
                             ?>
                             
                             <?php if (!$isCurrentUser): ?>

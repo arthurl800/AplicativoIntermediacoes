@@ -4,14 +4,17 @@
 // Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/IntermediacaoModel.php';
+require_once dirname(dirname(__DIR__)) . '/app/util/AuditLogger.php';
 
 class DataController {
     private $authManager;
     private $intermediacaoModel;
+    private $auditLogger;
 
     public function __construct() {
         $this->authManager = new AuthManager();
         $this->intermediacaoModel = new IntermediacaoModel();
+        $this->auditLogger = AuditLogger::getInstance();
         
         // Proteção: Apenas usuários logados podem acessar este controller
         if (!$this->authManager->isLoggedIn()) {
@@ -53,6 +56,11 @@ class DataController {
             // Se não houver filtros, carrega os dados padrão (limitado a 100)
             $dados = $this->intermediacaoModel->getAllData();
         }
+        
+        // Registra visualização de dados
+        $filtroAplicado = $isFiltered ? json_encode($filters) : 'sem filtros';
+        $this->auditLogger->logView('DADOS', "Visualização de intermediações - Filtros: {$filtroAplicado}");
+        
         // Agregados negociáveis para o operador/comprador
         $aggregates = $this->intermediacaoModel->getNegotiableAggregates(200);
 

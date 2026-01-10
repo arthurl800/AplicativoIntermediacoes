@@ -108,8 +108,10 @@ class AuditoriaModel {
      */
     public function getAuditoriaCompleta(int $limit = 100, int $offset = 0): array {
         try {
-            $sql = "SELECT * FROM NEGOCIACOES_AUDITORIA 
-                   ORDER BY data_acao DESC
+            $sql = "SELECT na.*, u.name AS usuario_name 
+                   FROM NEGOCIACOES_AUDITORIA na
+                   LEFT JOIN USUARIOS_TABLE u ON na.usuario_name = u.Nome
+                   ORDER BY na.data_acao DESC
                    LIMIT :limit OFFSET :offset";
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -149,6 +151,48 @@ class AuditoriaModel {
         } catch (PDOException $e) {
             error_log("Erro ao buscar estatísticas por período: " . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Registra uma ação de auditoria na tabela NEGOCIACOES_AUDITORIA
+     * @param int $negociacaoId ID da negociação
+     * @param string $acao Tipo de ação (CRIACAO, ATUALIZACAO, EXCLUSAO, etc)
+     * @param string|null $usuarioName Nome do usuário que realizou a ação
+     * @param string|null $usuarioIp IP do usuário
+     * @param array|null $dadosAntes Estado anterior dos dados
+     * @param array|null $dadosDepois Estado posterior dos dados
+     * @param string|null $descricaoMudanca Descrição da mudança realizada
+     * @return bool
+     */
+    public function registrarAuditoria(
+        int $negociacaoId,
+        string $acao,
+        ?string $usuarioName = null,
+        ?string $usuarioIp = null,
+        ?array $dadosAntes = null,
+        ?array $dadosDepois = null,
+        ?string $descricaoMudanca = null
+    ): bool {
+        try {
+            $sql = "INSERT INTO NEGOCIACOES_AUDITORIA 
+                    (negociacao_id, acao, usuario_name, usuario_ip, dados_antes, dados_depois, descricao_mudanca) 
+                    VALUES 
+                    (:negociacao_id, :acao, :usuario_name, :usuario_ip, :dados_antes, :dados_depois, :descricao_mudanca)";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':negociacao_id', $negociacaoId, PDO::PARAM_INT);
+            $stmt->bindValue(':acao', $acao);
+            $stmt->bindValue(':usuario_name', $usuarioName);
+            $stmt->bindValue(':usuario_ip', $usuarioIp);
+            $stmt->bindValue(':dados_antes', $dadosAntes ? json_encode($dadosAntes, JSON_UNESCAPED_UNICODE) : null);
+            $stmt->bindValue(':dados_depois', $dadosDepois ? json_encode($dadosDepois, JSON_UNESCAPED_UNICODE) : null);
+            $stmt->bindValue(':descricao_mudanca', $descricaoMudanca);
+            
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Erro ao registrar auditoria: " . $e->getMessage());
+            return false;
         }
     }
 }

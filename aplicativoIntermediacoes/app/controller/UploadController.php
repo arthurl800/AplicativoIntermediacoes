@@ -7,12 +7,15 @@ require_once dirname(dirname(__DIR__)) . '/app/util/IFileProcessor.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/CsvProcessor.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/XlsxProcessor.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/IntermediacoesNegociadaModel.php';
+require_once dirname(dirname(__DIR__)) . '/app/util/AuditLogger.php';
 
 class UploadController {
     private $model;
+    private $auditLogger;
 
     public function __construct() {
         $this->model = new IntermediacaoModel();
+        $this->auditLogger = AuditLogger::getInstance();
     }
 
     // Ação Padrão (index) para exibir o formulário
@@ -90,6 +93,9 @@ class UploadController {
                 $result['success'] = true;
                 $result['message'] = "Importado com sucesso {$db_result['inserted']} linhas";
                 $result['errors'] = $db_result['errors'];
+
+                // Registra upload na auditoria
+                $this->auditLogger->logUpload($arquivo_nome, $db_result['inserted']);
 
                 // Armazena um preview (header + head 25 rows) na sessão para ser exibido na página de visualização de dados
                 if (session_status() == PHP_SESSION_NONE) {

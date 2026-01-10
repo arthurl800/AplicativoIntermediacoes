@@ -28,11 +28,12 @@
             <br>
             <a href="index.php?controller=upload&action=index">Importar e Visualizar os Dados</a>
             </br>
-        </ul>
-        <ul>
-            <br>
-            <a href="index.php?controller=dados&action=visualizar&only_negotiations=1#negociacoes">Negociações</a>
+             <br>
+            <a href="index.php?controller=negociacao&action=painel" class="btn-link">Intermediações a se Realizar</a>
             </br>
-        </ul> 
+             <br>
+            <a href="index.php?controller=dados&action=visualizar_negociadas" class="btn-link">Intermediações Efetivadas</a>
+            </br>
+        </ul>
     </div>
 </main>

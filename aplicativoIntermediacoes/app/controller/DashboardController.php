@@ -4,12 +4,15 @@
 // Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/IntermediacaoModel.php';
+require_once dirname(dirname(__DIR__)) . '/app/util/AuditLogger.php';
 
 class DashboardController {
     private $authManager;
+    private $auditLogger;
 
     public function __construct() {
         $this->authManager = new AuthManager();
+        $this->auditLogger = AuditLogger::getInstance();
     }
 
     public function index() {
@@ -17,6 +20,9 @@ class DashboardController {
         if (!$this->authManager->isLoggedIn()) {
             AuthManager::redirectTo('index.php?controller=auth&action=login');
         }
+
+        // Registra visualização do dashboard
+        $this->auditLogger->logView('DASHBOARD', 'Acesso ao painel principal');
 
         $username = $_SESSION['username'];
         $role = $_SESSION['role'];

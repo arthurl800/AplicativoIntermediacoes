@@ -3,14 +3,20 @@
 
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/NegociacaoModel.php';
+require_once dirname(dirname(__DIR__)) . '/app/model/AuditoriaModel.php';
+require_once dirname(dirname(__DIR__)) . '/app/util/AuditLogger.php';
 
 class NegociacaoController {
     private $authManager;
     private $negociacaoModel;
+    private $auditoriaModel;
+    private $auditLogger;
 
     public function __construct() {
         $this->authManager = new AuthManager();
         $this->negociacaoModel = new NegociacaoModel();
+        $this->auditoriaModel = new AuditoriaModel();
+        $this->auditLogger = AuditLogger::getInstance();
 
         // Proteção: Apenas usuários logados
         if (!$this->authManager->isLoggedIn()) {
@@ -128,6 +134,7 @@ class NegociacaoController {
                 'conta_vendedor' => $negociacao['conta'] ?? null,
                 'nome_vendedor' => $negociacao['cliente'] ?? null,
                 'produto' => $negociacao['produto'] ?? null,
+                'id_registro_source' => $negociacao_id,  // ID da intermediação original
                 'estrategia' => $negociacao['estrategia'] ?? null,
                 'quantidade_negociada' => $quantidade_vendida,
                 'valor_bruto_importado_raw' => $valor_bruto_centavos,
@@ -178,6 +185,31 @@ class NegociacaoController {
                     error_log("Exception ao transferir para NEGOCIADA: " . $e->getMessage());
                 }
                 
+                // Registra negociação na auditoria (NEGOCIACOES_AUDITORIA)
+                $currentUser = $this->authManager->getCurrentUser();
+                $this->auditoriaModel->registrarAuditoria(
+                    $insertId,  // ID da negociação criada
+                    'CRIACAO',
+                    $currentUser ? $currentUser['name'] : 'Sistema',
+                    $_SERVER['REMOTE_ADDR'] ?? null,
+                    null,  // Dados antes (não existe antes da criação)
+                    array_merge($dataToSave, [
+                        'negociacao_id' => $negociacao_id,
+                        'quantidade_disponivel_antes' => $quantidade_disponivel,
+                        'quantidade_disponivel_depois' => $quantidade_nova,
+                        'insert_id' => $insertId
+                    ]),
+                    "Negociação criada - Quantidade vendida: {$quantidade_vendida}, Quantidade remanescente: {$quantidade_nova}"
+                );
+                
+                // Registra também no log geral do sistema
+                $this->auditLogger->logNegociacao($negociacao_id, array_merge($dataToSave, [
+                    'negociacao_id' => $negociacao_id,
+                    'quantidade_disponivel_antes' => $quantidade_disponivel,
+                    'quantidade_disponivel_depois' => $quantidade_nova,
+                    'insert_id' => $insertId
+                ]));
+                
                 $_SESSION['mensagem_sucesso'] = "Negociação realizada com sucesso! Quantidade vendida: {$quantidade_vendida}. Quantidade remanescente: {$quantidade_nova}";
                 AuthManager::redirectTo('index.php?controller=negociacao&action=painel');
             } else {
@@ -207,5 +239,49 @@ class NegociacaoController {
         </main>
         <?php
         include $base_dir . '/includes/footer.php';
+    }
+
+    /**
+     * Estorna uma negociação
+     */
+    public function estornar() {
+        $base_dir = dirname(dirname(__DIR__));
+        
+        // Verifica se o ID foi fornecido
+        $negociacaoId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        
+        if ($negociacaoId <= 0) {
+            $_SESSION['mensagem_erro'] = "ID de negociação inválido.";
+            AuthManager::redirectTo('index.php?controller=dados&action=visualizar_negociadas');
+            exit;
+        }
+        
+        // Processa o estorno
+        $resultado = $this->negociacaoModel->estornarNegociacao($negociacaoId);
+        
+        if ($resultado['success']) {
+            // Registra o estorno na auditoria
+            $negociacao = $resultado['negociacao'];
+            $currentUser = $this->authManager->getCurrentUser();
+            
+            $this->auditoriaModel->registrarAuditoria(
+                $negociacaoId,
+                'ESTORNO',
+                $currentUser ? $currentUser['Nome'] : 'Sistema',
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                $negociacao,  // Dados antes do estorno
+                null,  // Dados depois (negociação deletada)
+                "Negociação estornada - Produto: {$negociacao['Produto']}, Quantidade: {$negociacao['Quantidade_negociada']}"
+            );
+            
+            // Registra também no log geral do sistema
+            $this->auditLogger->logDelete('NEGOCIACAO', 'Estorno de negociação ID ' . $negociacaoId, $negociacao);
+            
+            $_SESSION['mensagem_sucesso'] = $resultado['message'];
+        } else {
+            $_SESSION['mensagem_erro'] = $resultado['message'];
+        }
+        
+        AuthManager::redirectTo('index.php?controller=dados&action=visualizar_negociadas');
     }
 }

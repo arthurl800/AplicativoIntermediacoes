@@ -11,7 +11,7 @@ require_once dirname(__DIR__) . '/app/util/AuthManager.php';
 
 $authManager = new AuthManager();
 $isLoggedIn = $authManager->isLoggedIn();
-$user = $authManager->getCurrentUser();
+$currentUser = $authManager->getCurrentUser();
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -67,16 +67,16 @@ $user = $authManager->getCurrentUser();
                     border-radius: 0;
                     color: white;">
                     Efetivadas</a>
-
-                    <a href="index.php?controller=relatorio&action=auditoria"
-                    style="border-bottom: 2px solid red;
-                    padding-bottom: 2px;
-                    text-decoration: none;
-                    border-radius: 0;
-                    color: red;">
-                    Auditoria</a>
                     
-                    <?php if ($user && $user['role'] === 'admin'): ?>
+                    <?php if ($currentUser && $currentUser['role'] === 'admin'): ?>
+                        <a href="index.php?controller=relatorio&action=auditoriaGeral"
+                        style="border-bottom: 2px solid red;
+                        padding-bottom: 2px;
+                        text-decoration: none;
+                        border-radius: 0;
+                        color: red;">
+                        Auditoria</a>
+                        
                         <a href="index.php?controller=admin&action=users" 
                         style="border-bottom: 2px solid white;
                         padding-bottom: 2px;
@@ -96,10 +96,9 @@ $user = $authManager->getCurrentUser();
             <!-- Informações do Usuário -->
             <?php if ($isLoggedIn): ?>
                 <div class="user-info">
-                    <span> <?= htmlspecialchars($user['username'] ?? 'Usuário') ?></span>
+                    <span> <?= htmlspecialchars($currentUser['username'] ?? 'Usuário') ?></span>
                     <a href="index.php?controller=auth&action=logout" class="logout-btn"> SAIR</a>
                 </div>
             <?php endif; ?>
         </div>
     </header>
-    <main>

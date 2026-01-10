@@ -7,6 +7,20 @@
         Negociações Efetivadas
     </h2>
 
+    <?php if (isset($_SESSION['mensagem_sucesso'])): ?>
+        <div class="alert alert-success" style="padding: 12px; margin-bottom: 16px; background-color: #d1e7dd; border: 1px solid #badbcc; border-radius: 4px; color: #0f5132;">
+            <?= htmlspecialchars($_SESSION['mensagem_sucesso']) ?>
+        </div>
+        <?php unset($_SESSION['mensagem_sucesso']); ?>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['mensagem_erro'])): ?>
+        <div class="alert alert-danger" style="padding: 12px; margin-bottom: 16px; background-color: #f8d7da; border: 1px solid #f5c2c7; border-radius: 4px; color: #842029;">
+            <?= htmlspecialchars($_SESSION['mensagem_erro']) ?>
+        </div>
+        <?php unset($_SESSION['mensagem_erro']); ?>
+    <?php endif; ?>
+
     <div class="view-toolbar" style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
         <button id="btnFullscreen" class="btn btn-secondary" type="button">⤢ Tela Cheia</button>
         <small class="text-muted">Use o botão para expandir a tabela. Pressione ESC para sair.</small>
@@ -44,6 +58,7 @@
                             <th style="text-align: right; color: blue;">Taxa Entr. (%)</th>
                             <th style="text-align: right; color: blue;">Valor Bruto Entr. (R$)</th>
                             <th style="text-align: right; color: green;">ROA (%)</th>
+                            <th style="text-align: center; color: red;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -99,6 +114,17 @@
                                 <td data-label="Taxa Entrada" style="text-align: right;"><?= number_format($taxEntrada, 2, ',', '.') ?> %</td>
                                 <td data-label="Valor Bruto Entrada" style="text-align: right;">R$ <?= number_format($row['Valor_Bruto_Entrada'] ?? 0, 2, ',', '.') ?></td>
                                 <td data-label="ROA" style="text-align: right;"><?= number_format($roa, 2, ',', '.') ?> %</td>
+                                <td data-label="Ações" style="text-align: center;">
+                                    <button 
+                                        class="btn-estornar" 
+                                        data-id="<?= $row['id'] ?>"
+                                        data-produto="<?= htmlspecialchars($row['Produto'] ?? '') ?>"
+                                        data-quantidade="<?= number_format($row['Quantidade_negociada'] ?? 0, 0, ',', '.') ?>"
+                                        onclick="confirmarEstorno(this)"
+                                        title="Estornar esta negociação">
+                                        ↩ Estornar
+                                    </button>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -237,3 +263,54 @@
         });
     })();
 </script>
+
+<script>
+    // Função para confirmar e processar o estorno
+    function confirmarEstorno(btn) {
+        const id = btn.getAttribute('data-id');
+        const produto = btn.getAttribute('data-produto');
+        const quantidade = btn.getAttribute('data-quantidade');
+        
+        const confirmacao = confirm(
+            `⚠️ ATENÇÃO: Esta ação irá estornar a negociação!\n\n` +
+            `Produto: ${produto}\n` +
+            `Quantidade: ${quantidade}\n\n` +
+            `Isso irá:\n` +
+            `- Deletar o registro da negociação\n` +
+            `- Restaurar a quantidade disponível na intermediação original\n\n` +
+            `Deseja realmente estornar esta negociação?`
+        );
+        
+        if (confirmacao) {
+            // Desabilita o botão para evitar cliques múltiplos
+            btn.disabled = true;
+            btn.textContent = 'Processando...';
+            
+            // Redireciona para o controller de estorno
+            window.location.href = `index.php?controller=negociacao&action=estornar&id=${id}`;
+        }
+    }
+</script>
+
+<style>
+    .btn-estornar {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-estornar:hover {
+        background-color: #bb2d3b;
+    }
+    
+    .btn-estornar:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
+</style>

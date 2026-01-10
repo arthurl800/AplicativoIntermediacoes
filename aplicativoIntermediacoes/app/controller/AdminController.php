@@ -4,14 +4,17 @@
 // Inclui dependências
 require_once dirname(dirname(__DIR__)) . '/app/model/UserModel.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
+require_once dirname(dirname(__DIR__)) . '/app/util/AuditLogger.php';
 
 class AdminController {
     private $userModel;
     private $authManager;
+    private $auditLogger;
 
     public function __construct() {
         $this->userModel = new UserModel();
         $this->authManager = new AuthManager();
+        $this->auditLogger = AuditLogger::getInstance();
 
         // Garante que apenas administradores possam acessar este Controller
         if (!$this->authManager->isAdmin()) {
@@ -51,8 +54,16 @@ class AdminController {
             AuthManager::redirectTo('index.php?controller=admin&action=users');
         }
         
+        // Busca dados do usuário antes de deletar para auditoria
+        $usuario = $this->userModel->findById($idToDelete);
+        
         // Tenta deletar o usuário
         if ($this->userModel->delete($idToDelete)) {
+            // Registra deleção na auditoria
+            if ($usuario) {
+                $this->auditLogger->logDelete('USUARIOS', "Usuário deletado: {$usuario['username']} (ID: {$idToDelete})", $usuario);
+            }
+            
             $_SESSION['admin_message'] = "Usuário ID {$idToDelete} removido com sucesso.";
         } else {
             $_SESSION['admin_message'] = "Erro ao tentar remover o usuário ID {$idToDelete}.";
@@ -102,8 +113,17 @@ class AdminController {
             AuthManager::redirectTo('index.php?controller=admin&action=editUser&id=' . $id);
         }
 
+        // Busca dados antigos para auditoria
+        $dadosAntes = $this->userModel->findById($id);
+
         $ok = $this->userModel->update($id, $username, $password, $cpf, $role);
         if ($ok) {
+            // Busca dados novos para auditoria
+            $dadosDepois = $this->userModel->findById($id);
+            
+            // Registra atualização na auditoria
+            $this->auditLogger->logUpdate('USUARIOS', "Usuário atualizado: {$username} (ID: {$id})", $dadosAntes ?? [], $dadosDepois ?? []);
+            
             $_SESSION['admin_message'] = "Usuário atualizado com sucesso.";
         } else {
             $_SESSION['admin_message'] = "Falha ao atualizar usuário.";
@@ -143,6 +163,13 @@ class AdminController {
 
         $ok = $this->userModel->create($username, $password, $cpf, $role);
         if ($ok) {
+            // Registra criação na auditoria
+            $this->auditLogger->logCreate('USUARIOS', "Novo usuário criado: {$username}", [
+                'username' => $username,
+                'cpf' => $cpf,
+                'role' => $role
+            ]);
+            
             $_SESSION['admin_message'] = 'Usuário criado com sucesso.';
         } else {
             $_SESSION['admin_message'] = 'Falha ao criar usuário. Verifique logs.';

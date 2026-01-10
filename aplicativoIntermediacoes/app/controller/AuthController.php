@@ -7,15 +7,18 @@ $base_dir = dirname(dirname(__DIR__));
 // Inclui dependências
 require_once $base_dir . '/app/model/UserModel.php';
 require_once $base_dir . '/app/util/AuthManager.php';
+require_once $base_dir . '/app/util/AuditLogger.php';
 
 class AuthController {
     private $userModel;
     private $authManager;
+    private $auditLogger;
 
     public function __construct() {
         // Assegura que o UserModel e AuthManager são instanciados
         $this->userModel = new UserModel();
         $this->authManager = new AuthManager();
+        $this->auditLogger = AuditLogger::getInstance();
     }
 
     // Exibe o formulário de login
@@ -49,8 +52,19 @@ class AuthController {
         if ($user && password_verify($password, $user['password'])) {
             // Login bem-sucedido
             $this->authManager->login($user);
+            
+            // Registra login bem-sucedido
+            $this->auditLogger->logLogin($user['id'], $user['username'], true);
+            
             AuthManager::redirectTo('index.php?controller=dashboard&action=index');
         } else {
+            // Registra tentativa de login falha
+            if ($user) {
+                $this->auditLogger->logLogin($user['id'], $user['username'], false);
+            } else {
+                $this->auditLogger->log('LOGIN_FALHA', 'AUTENTICACAO', "Tentativa de login com usuário inexistente: {$username}");
+            }
+            
             // Falha no login
             $_SESSION['auth_error'] = "Usuário ou senha inválidos.";
             AuthManager::redirectTo('index.php?controller=auth&action=login');
@@ -103,6 +117,12 @@ class AuthController {
 
         // 2. Tenta criar o usuário
         if ($this->userModel->create($username, $password, $cpf)) {
+            // Registra criação de usuário
+            $this->auditLogger->logCreate('USUARIOS', "Novo usuário criado: {$username}", [
+                'username' => $username,
+                'cpf' => $cpf
+            ]);
+            
             // Sucesso no cadastro
             $_SESSION['auth_success'] = "Usuário {$username} cadastrado com sucesso! Faça login.";
             AuthManager::redirectTo('index.php?controller=auth&action=login');
@@ -127,6 +147,11 @@ class AuthController {
 
     // Ação de logout
     public function logout() {
+        $currentUser = $this->authManager->getCurrentUser();
+        if ($currentUser) {
+            $this->auditLogger->logLogout($currentUser['id'], $currentUser['username']);
+        }
+        
         $this->authManager->logout();
         AuthManager::redirectTo('index.php?controller=auth&action=login');
     }

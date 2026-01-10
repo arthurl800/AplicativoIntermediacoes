@@ -495,4 +495,70 @@ class NegociacaoModel {
             return false;
         }
     }
+
+    /**
+     * Estorna uma negociação, restaurando a quantidade disponível
+     * @param int $negociacaoId ID da negociação a ser estornada
+     * @return array ['success' => bool, 'message' => string, 'negociacao' => array|null]
+     */
+    public function estornarNegociacao(int $negociacaoId): array {
+        try {
+            // Inicia transação
+            $this->pdo->beginTransaction();
+            
+            // 1. Busca os dados da negociação
+            $sql = "SELECT * FROM {$this->table} WHERE id = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':id', $negociacaoId, PDO::PARAM_INT);
+            $stmt->execute();
+            $negociacao = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$negociacao) {
+                $this->pdo->rollBack();
+                return [
+                    'success' => false,
+                    'message' => 'Negociação não encontrada.',
+                    'negociacao' => null
+                ];
+            }
+            
+            // 2. Restaura a quantidade disponível na intermediação original
+            if (!empty($negociacao['ID_Registro_Source'])) {
+                $sqlRestore = "UPDATE {$this->tableIntermediacao} 
+                              SET Quantidade = Quantidade + :quantidade
+                              WHERE id = :id_source";
+                $stmtRestore = $this->pdo->prepare($sqlRestore);
+                $stmtRestore->bindValue(':quantidade', $negociacao['Quantidade_negociada']);
+                $stmtRestore->bindValue(':id_source', $negociacao['ID_Registro_Source'], PDO::PARAM_INT);
+                $stmtRestore->execute();
+            }
+            
+            // 3. Deleta a negociação da tabela NEGOCIACOES
+            $sqlDelete = "DELETE FROM {$this->table} WHERE id = :id";
+            $stmtDelete = $this->pdo->prepare($sqlDelete);
+            $stmtDelete->bindValue(':id', $negociacaoId, PDO::PARAM_INT);
+            $stmtDelete->execute();
+            
+            // Commit da transação
+            $this->pdo->commit();
+            
+            return [
+                'success' => true,
+                'message' => 'Negociação estornada com sucesso!',
+                'negociacao' => $negociacao
+            ];
+            
+        } catch (PDOException $e) {
+            // Rollback em caso de erro
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log("Erro ao estornar negociação: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Erro ao estornar negociação: ' . $e->getMessage(),
+                'negociacao' => null
+            ];
+        }
+    }
 }

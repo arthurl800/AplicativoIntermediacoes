@@ -5,14 +5,17 @@
 require_once dirname(dirname(__DIR__)) . '/app/util/AuthManager.php';
 require_once dirname(dirname(__DIR__)) . '/app/util/Database.php';
 require_once dirname(dirname(__DIR__)) . '/app/model/AuditoriaModel.php';
+require_once dirname(dirname(__DIR__)) . '/app/util/AuditLogger.php';
 
 class RelatorioController {
     private $authManager;
     private $auditoriaModel;
+    private $auditLogger;
 
     public function __construct() {
         $this->authManager = new AuthManager();
         $this->auditoriaModel = new AuditoriaModel();
+        $this->auditLogger = AuditLogger::getInstance();
         if (!$this->authManager->isLoggedIn()) {
             header('Location: index.php?controller=auth&action=login');
             exit;
@@ -26,8 +29,54 @@ class RelatorioController {
         $offset = ($page - 1) * $limit;
         $auditoria = $this->auditoriaModel->getAuditoriaCompleta($limit, $offset);
         
+        // Registra visualização do relatório de auditoria
+        $this->auditLogger->logView('RELATORIO', 'Visualização do relatório de auditoria de negociações');
+        
         include $base_dir . '/includes/header.php';
         include $base_dir . '/app/view/relatorio/Auditoria.php';
+        include $base_dir . '/includes/footer.php';
+    }
+    
+    /**
+     * Novo método para visualizar auditoria completa do sistema
+     */
+    public function auditoriaGeral() {
+        // Apenas administradores podem acessar
+        if (!$this->authManager->isAdmin()) {
+            $_SESSION['auth_error'] = "Acesso negado. Apenas administradores.";
+            header('Location: index.php?controller=dashboard&action=index');
+            exit;
+        }
+        
+        $base_dir = dirname(dirname(__DIR__));
+        
+        // Filtros
+        $filtros = [
+            'usuario_id' => isset($_GET['usuario_id']) && !empty($_GET['usuario_id']) ? (int)$_GET['usuario_id'] : null,
+            'modulo' => isset($_GET['modulo']) && !empty($_GET['modulo']) ? $_GET['modulo'] : null,
+            'acao' => isset($_GET['acao']) && !empty($_GET['acao']) ? $_GET['acao'] : null,
+            'data_inicio' => isset($_GET['data_inicio']) && !empty($_GET['data_inicio']) ? $_GET['data_inicio'] : null,
+            'data_fim' => isset($_GET['data_fim']) && !empty($_GET['data_fim']) ? $_GET['data_fim'] : null,
+        ];
+        
+        // Remove filtros nulos
+        $filtros = array_filter($filtros, function($v) { return $v !== null; });
+        
+        // Paginação
+        $limit = 100;
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $offset = ($page - 1) * $limit;
+        
+        // Busca logs
+        $logs = $this->auditLogger->buscarLogs($filtros, $limit, $offset);
+        $totalLogs = $this->auditLogger->contarLogs($filtros);
+        $totalPaginas = ceil($totalLogs / $limit);
+        
+        // Registra visualização
+        $this->auditLogger->logView('RELATORIO', 'Visualização da auditoria geral do sistema');
+        
+        include $base_dir . '/includes/header.php';
+        include $base_dir . '/app/view/relatorio/AuditoriaGeral.php';
         include $base_dir . '/includes/footer.php';
     }
 
