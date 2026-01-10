@@ -13,14 +13,6 @@ Sistema web para gerenciamento de intermediações financeiras, negociações e 
 - ✅ Sistema de autenticação seguro
 - ✅ Interface responsiva (mobile-friendly)
 
-## 🚀 Deploy
-
-Consulte o arquivo [DEPLOY_GUIDE.md](DEPLOY_GUIDE.md) para instruções detalhadas de publicação.
-
-### Hospedagens Gratuitas Recomendadas:
-- **InfinityFree** (recomendado): https://infinityfree.net
-- **000webhost**: https://www.000webhost.com
-
 ## 💻 Desenvolvimento Local
 
 ### Requisitos
@@ -131,4 +123,4 @@ Para problemas ou dúvidas:
 
 ---
 
-**Desenvolvido com ❤️ para facilitar o gerenciamento de intermediações financeiras**
+**Desenvolvido com Dedicação para facilitar o gerenciamento de intermediações financeiras**
