@@ -30,6 +30,12 @@ unset($_SESSION['auth_error'], $_SESSION['auth_success']);
             </div>
 
             <div class="form-group">
+                <label for="email">E-mail:</label>
+                <input type="email" id="email" name="email" required 
+                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+            </div>
+
+            <div class="form-group">
                 <label for="cpf">CPF:</label>
                 <!-- O input recebe a máscara -->
                 <input type="text" id="cpf" name="cpf_masked" 

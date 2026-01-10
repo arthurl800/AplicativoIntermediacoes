@@ -22,18 +22,26 @@ class UserModel {
      * @param string $password
      * @param string $cpf
      * @param string $role
+     * @param string $email
      * @return bool Retorna true em caso de sucesso ou false em caso de falha.
      */
-    public function create(string $username, string $password, ?string $cpf = null, string $role = 'user'): bool {
+    public function create(string $username, string $password, ?string $cpf = null, string $role = 'user', ?string $email = null): bool {
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+    
+    // Se e-mail não for fornecido, usa username@example.com
+    if (empty($email)) {
+        $email = $username . '@example.com';
+    }
 
-    $sql = "INSERT INTO {$this->table} (Nome, Senha, CPF, Funcao) VALUES (:username, :password_hash, :cpf, :role)";
+    $sql = "INSERT INTO {$this->table} (username, email, password_hash, Nome, CPF, role) VALUES (:username, :email, :password_hash, :nome, :cpf, :role)";
         
         try {
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
                 ':username' => $username,
+                ':email' => $email,
                 ':password_hash' => $passwordHash,
+                ':nome' => $username, // Nome igual ao username
                 ':cpf' => $cpf,
                 ':role' => $role
             ]);
@@ -50,7 +58,7 @@ class UserModel {
      * @return array|null Dados do usuário ou null se não encontrado.
      */
     public function findByUsername(string $username): ?array {
-        $sql = "SELECT id, Nome as username, Senha as password, CPF as cpf, Funcao as role FROM {$this->table} WHERE Nome = :username";
+        $sql = "SELECT id, username, password_hash as password, Nome, CPF, role FROM {$this->table} WHERE username = :username";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':username' => $username]);
 
@@ -64,7 +72,7 @@ class UserModel {
      * @return array Lista de todos os usuários.
      */
     public function findAll(): array {
-        $sql = "SELECT id, Nome as username, CPF as cpf, Funcao as role FROM {$this->table} ORDER BY id ASC";
+        $sql = "SELECT id, username, email, CPF, role FROM {$this->table} ORDER BY id ASC";
         $stmt = $this->db->query($sql);
         return $stmt->fetchAll();
     }
@@ -91,7 +99,7 @@ class UserModel {
      * @return array|null
      */
     public function findById(int $id): ?array {
-        $sql = "SELECT id, Nome as username, CPF as cpf, Funcao as role FROM {$this->table} WHERE id = :id LIMIT 1";
+        $sql = "SELECT id, username, CPF, role FROM {$this->table} WHERE id = :id LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -111,12 +119,13 @@ class UserModel {
         $parts = [];
         $params = [':id' => $id, ':username' => $username];
 
-        $parts[] = "Nome = :username";
+        $parts[] = "username = :username";
+        $parts[] = "Nome = :username"; // Manter Nome sincronizado
         if (!is_null($cpf)) { $parts[] = "CPF = :cpf"; $params[':cpf'] = $cpf; }
-        if (!is_null($role)) { $parts[] = "Funcao = :role"; $params[':role'] = $role; }
+        if (!is_null($role)) { $parts[] = "role = :role"; $params[':role'] = $role; }
         if (!is_null($password) && $password !== '') {
-            $parts[] = "Senha = :senha";
-            $params[':senha'] = password_hash($password, PASSWORD_DEFAULT);
+            $parts[] = "password_hash = :password_hash";
+            $params[':password_hash'] = password_hash($password, PASSWORD_DEFAULT);
         }
 
         $sql = "UPDATE {$this->table} SET " . implode(', ', $parts) . " WHERE id = :id";

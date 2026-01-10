@@ -1,9 +1,6 @@
 # Variáveis de ambiente (credenciais)
 .env
 
-# Ignore local configuration with credentials
-/config/database.php
-
 # Ignore SQLite DB if accidentally present
 app_data.db
 
@@ -24,3 +21,4 @@ app_data.db
 # Temporary files
 /tmp/
 *.tmp
+create_admin.php

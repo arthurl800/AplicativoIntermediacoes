@@ -443,10 +443,12 @@ class IntermediacaoModel {
     /**
      * Insere um lote de registros no banco de dados.
      * @param array $records Array de arrays de dados.
+     * @param string $duplicateStrategy Estratégia para duplicatas: 'skip', 'replace', 'error'
      * @return array Resultado do processamento (número de inseridos, erros).
      */
-    public function insertBatch(array $records): array {
+    public function insertBatch(array $records, string $duplicateStrategy = 'error'): array {
         $insertedCount = 0;
+        $skippedCount = 0;
         $errors = [];
         $tableName = $this->getTableName();
 
@@ -475,33 +477,26 @@ class IntermediacaoModel {
         $columnNames = implode(', ', $columns);
         $sqlSource = "INSERT INTO {$tableName} ({$columnNames}) VALUES ({$placeholders})";
 
-        // Prepara colunas e SQL para a tabela negociada (destino)
-        $targetTable = 'INTERMEDIACOES_TABLE_NEGOCIADA';
-        // Para a tabela negociada, removemos a coluna interna 'imported_at' (se presente)
-        $targetColumns = $columns;
-        if (($key = array_search('imported_at', $targetColumns, true)) !== false) {
-            unset($targetColumns[$key]);
-            $targetColumns = array_values($targetColumns);
-        }
-        // A tabela negociada possui 'Data_Importacao' — usamos NOW() no insert (adicionamos coluna explicitamente)
-        $targetColumns[] = 'Data_Importacao';
-        $placeholdersTarget = implode(', ', array_fill(0, count($targetColumns), '?'));
-        $columnNamesTarget = implode(', ', $targetColumns);
-        $sqlTarget = "INSERT INTO {$targetTable} ({$columnNamesTarget}) VALUES ({$placeholdersTarget})";
-
         try {
             $stmtSource = $this->pdo->prepare($sqlSource);
-            $stmtTarget = $this->pdo->prepare($sqlTarget);
+            
+            // Prepara statements para REPLACE (se estratégia for 'replace')
+            $stmtSourceReplace = null;
+            
+            if ($duplicateStrategy === 'replace') {
+                $sqlSourceReplace = str_replace('INSERT INTO', 'REPLACE INTO', $sqlSource);
+                $stmtSourceReplace = $this->pdo->prepare($sqlSourceReplace);
+            }
 
             $now = date('Y-m-d H:i:s');
 
-            // MODIFICAÇÃO: Processa cada linha individualmente em sua própria transação
+            // Processa cada linha individualmente em sua própria transação
             foreach ($records as $index => $row) {
                 try {
                     $this->pdo->beginTransaction();
                     
                     $values = [];
-                    // Preserve comportamento legado: cada $row é uma lista de valores na ordem do arquivo
+                    // Cada $row é uma lista de valores na ordem do arquivo
                     foreach ($row as $value) {
                         $values[] = ($value === '' || $value === null) ? null : $value;
                     }
@@ -520,49 +515,44 @@ class IntermediacaoModel {
                     }
 
                     // Executa insert na tabela de origem
-                    if (!$stmtSource->execute($values)) {
+                    $executeSuccess = false;
+                    
+                    if ($duplicateStrategy === 'replace' && $stmtSourceReplace) {
+                        // Usa REPLACE INTO para substituir duplicatas
+                        $executeSuccess = $stmtSourceReplace->execute($values);
+                    } else {
+                        $executeSuccess = $stmtSource->execute($values);
+                    }
+                    
+                    if (!$executeSuccess) {
                         $errorInfo = $stmtSource->errorInfo();
                         
-                        // Verifica se é erro de duplicata (código 23000) - agora detecta pela chave composta
+                        // Verifica se é erro de duplicata (código 23000)
                         if ($errorInfo[0] == '23000') {
-                            $ativo = $values[4] ?? 'N/A';        // Ativo (índice 4)
-                            $dataCompra = $values[8] ?? 'N/A';   // Data_Compra (índice 8)
-                            $quantidade = $values[12] ?? 'N/A';  // Quantidade (índice 12)
-                            $msg = "Linha " . ($index + 2) . ": Registro duplicado (Ativo: {$ativo}, Data: {$dataCompra}, Qtd: {$quantidade} já existe)";
+                            $ativo = $values[4] ?? 'N/A';
+                            $dataCompra = $values[8] ?? 'N/A';
+                            $quantidade = $values[12] ?? 'N/A';
+                            
+                            if ($duplicateStrategy === 'skip') {
+                                // Pula a linha silenciosamente
+                                $skippedCount++;
+                                $this->pdo->rollBack();
+                                continue;
+                            } else {
+                                // Reporta erro
+                                $msg = "Linha " . ($index + 2) . ": Registro duplicado em {$tableName} (Ativo: {$ativo}, Data: {$dataCompra}, Qtd: {$quantidade})";
+                                error_log("DUPLICATA - Tabela: {$tableName} | Ativo: {$ativo} | Data: {$dataCompra} | Qtd: {$quantidade}");
+                                $errors[] = $msg;
+                                $this->pdo->rollBack();
+                                continue;
+                            }
                         } else {
                             $msg = "Linha " . ($index + 2) . ": Erro ao inserir - {$errorInfo[2]}";
+                            error_log("ERRO SQL - Tabela: {$tableName} | SQLSTATE: {$errorInfo[0]} | Mensagem: {$errorInfo[2]}");
+                            $errors[] = $msg;
+                            $this->pdo->rollBack();
+                            continue;
                         }
-                        
-                        error_log("IMPORT ERROR: " . $msg);
-                        $errors[] = $msg;
-                        $this->pdo->rollBack();
-                        continue;
-                    }
-
-                    // Prepara valores para o insert na tabela negociada
-                    $valuesTarget = $values;
-                    // Remove imported_at do final se foi adicionado
-                    if ($shouldInsertImportedAt) {
-                        array_pop($valuesTarget);
-                    }
-                    // Adiciona Data_Importacao (NOW)
-                    $valuesTarget[] = $now;
-
-                    if (count($valuesTarget) !== count($targetColumns)) {
-                        $msg = "Linha " . ($index + 2) . ": Erro de mapeamento de colunas para tabela negociada";
-                        error_log("IMPORT ERROR: " . $msg);
-                        $errors[] = $msg;
-                        $this->pdo->rollBack();
-                        continue;
-                    }
-
-                    if (!$stmtTarget->execute($valuesTarget)) {
-                        $errorInfo = $stmtTarget->errorInfo();
-                        $msg = "Linha " . ($index + 2) . ": Erro ao inserir na tabela negociada - {$errorInfo[2]}";
-                        error_log("IMPORT ERROR: " . $msg);
-                        $errors[] = $msg;
-                        $this->pdo->rollBack();
-                        continue;
                     }
 
                     $this->pdo->commit();
@@ -582,6 +572,10 @@ class IntermediacaoModel {
             $errors[] = "Erro na preparação do SQL para inserção: " . $e->getMessage();
         }
 
-        return ['inserted' => $insertedCount, 'errors' => $errors];
+        return [
+            'inserted' => $insertedCount, 
+            'errors' => $errors,
+            'skipped' => $skippedCount
+        ];
     }
 }

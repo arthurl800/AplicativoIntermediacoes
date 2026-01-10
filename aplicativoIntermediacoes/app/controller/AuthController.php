@@ -94,13 +94,19 @@ class AuthController {
         }
         
         $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
         $cpf = trim($_POST['cpf'] ?? ''); // CPF sem formatação.
         $password = $_POST['password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
 
         // 1. Validação básica pois o front-end deve ter a validação primária
-        if (empty($username) || empty($cpf) || empty($password) || empty($confirmPassword)) {
+        if (empty($username) || empty($email) || empty($cpf) || empty($password) || empty($confirmPassword)) {
             $_SESSION['auth_error'] = "Todos os campos são obrigatórios.";
+            AuthManager::redirectTo('index.php?controller=auth&action=register');
+            return;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['auth_error'] = "E-mail inválido.";
             AuthManager::redirectTo('index.php?controller=auth&action=register');
             return;
         }
@@ -116,10 +122,11 @@ class AuthController {
         }
 
         // 2. Tenta criar o usuário
-        if ($this->userModel->create($username, $password, $cpf)) {
+        if ($this->userModel->create($username, $password, $cpf, 'user', $email)) {
             // Registra criação de usuário
             $this->auditLogger->logCreate('USUARIOS', "Novo usuário criado: {$username}", [
                 'username' => $username,
+                'email' => $email,
                 'cpf' => $cpf
             ]);
             

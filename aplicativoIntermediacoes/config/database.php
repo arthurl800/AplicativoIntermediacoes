@@ -2,41 +2,68 @@
 // config/database.php
 
 // Carrega variáveis de ambiente do arquivo .env (se existir)
-function loadEnv($path) {
-    if (!file_exists($path)) {
-        return;
-    }
-    
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        // Ignora comentários
-        if (strpos(trim($line), '#') === 0) {
-            continue;
+// Retorna array com as variáveis parseadas
+if (!function_exists('loadEnv')) {
+    function loadEnv($path) {
+        $env = [];
+        
+        if (!file_exists($path)) {
+            return $env;
         }
         
-        // Parse linha no formato KEY=VALUE
-        list($name, $value) = explode('=', $line, 2);
-        $name = trim($name);
-        $value = trim($value);
-        
-        // Define como variável de ambiente
-        if (!array_key_exists($name, $_ENV)) {
-            putenv("$name=$value");
-            $_ENV[$name] = $value;
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            // Ignora comentários
+            if (strpos(trim($line), '#') === 0) {
+                continue;
+            }
+            
+            // Parse linha no formato KEY=VALUE
+            if (strpos($line, '=') === false) {
+                continue;
+            }
+            
+            list($name, $value) = explode('=', $line, 2);
+            $name = trim($name);
+            $value = trim($value);
+            
+            // Armazena no array
+            $env[$name] = $value;
         }
+        
+        return $env;
     }
 }
 
-// Carrega .env do diretório raiz
-loadEnv(__DIR__ . '/../.env');
+// Carrega .env do diretório raiz (somente se ainda não foi carregado)
+if (!isset($GLOBALS['envVars'])) {
+    $GLOBALS['envVars'] = loadEnv(__DIR__ . '/../.env');
+}
 
 // Função helper para pegar variáveis de ambiente
-function env($key, $default = null) {
-    $value = getenv($key);
-    if ($value === false) {
+if (!function_exists('env')) {
+    function env($key, $default = null) {
+        // Usa $GLOBALS ao invés de global para funcionar em qualquer escopo
+        $envVars = $GLOBALS['envVars'] ?? [];
+        
+        // Tenta pegar do array parseado primeiro
+        if (isset($envVars[$key])) {
+            return $envVars[$key];
+        }
+        
+        // Fallback para getenv (caso esteja disponível)
+        $value = getenv($key);
+        if ($value !== false) {
+            return $value;
+        }
+        
+        // Fallback para $_ENV
+        if (isset($_ENV[$key])) {
+            return $_ENV[$key];
+        }
+        
         return $default;
     }
-    return $value;
 }
 
 // Configurações do banco de dados

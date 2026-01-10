@@ -83,8 +83,14 @@ class UploadController {
                 // Força coleta de lixo após processar o arquivo
                 gc_collect_cycles();
 
+                // Obtém estratégia de duplicatas do formulário
+                $duplicateStrategy = $_POST['duplicate_strategy'] ?? 'error';
+                if (!in_array($duplicateStrategy, ['skip', 'replace', 'error'])) {
+                    $duplicateStrategy = 'error';
+                }
+
                 // Salva os dados no DB (Model)
-                $db_result = $this->model->insertBatch($records);
+                $db_result = $this->model->insertBatch($records, $duplicateStrategy);
                 
                 // Log do resultado
                 error_log("UPLOAD: Linhas inseridas: " . $db_result['inserted'] . " | Erros: " . count($db_result['errors']));
@@ -104,7 +110,13 @@ class UploadController {
                 }
 
                 $result['success'] = true;
-                $result['message'] = "Importado com sucesso {$db_result['inserted']} linhas";
+                $message = "Importado com sucesso {$db_result['inserted']} linhas";
+                
+                if (isset($db_result['skipped']) && $db_result['skipped'] > 0) {
+                    $message .= " ({$db_result['skipped']} duplicatas ignoradas)";
+                }
+                
+                $result['message'] = $message;
                 $result['errors'] = $db_result['errors'];
 
                 // Registra upload na auditoria

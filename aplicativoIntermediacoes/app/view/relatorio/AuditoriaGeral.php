@@ -112,10 +112,10 @@
                     <?php foreach ($logs as $log): ?>
                         <tr>
                             <td><strong><?= htmlspecialchars($log['id']) ?></strong></td>
-                            <td><?= date('d/m/Y H:i:s', strtotime($log['data_acao'])) ?></td>
+                            <td><?= date('d/m/Y H:i:s', strtotime($log['data_hora'])) ?></td>
                             <td>
-                                <?= htmlspecialchars($log['usuario_nome'] ?? 'Sistema') ?>
-                                <small class="text-muted">(ID: <?= $log['usuario_id'] ?? 'N/A' ?>)</small>
+                                <?= htmlspecialchars($log['usuario_name'] ?? 'Sistema') ?>
+                                <small class="text-muted">-</small>
                             </td>
                             <td><span class="badge badge-info"><?= htmlspecialchars($log['modulo']) ?></span></td>
                             <td>
@@ -130,11 +130,11 @@
                                 <span class="badge <?= $badgeClass ?>"><?= htmlspecialchars($log['acao']) ?></span>
                             </td>
                             <td class="text-left">
-                                <?= htmlspecialchars(strlen($log['descricao']) > 60 ? substr($log['descricao'], 0, 60) . '...' : $log['descricao']) ?>
+                                <?= htmlspecialchars(strlen($log['detalhes']) > 60 ? substr($log['detalhes'], 0, 60) . '...' : $log['detalhes']) ?>
                             </td>
                             <td><small><?= htmlspecialchars($log['ip_address'] ?? 'N/A') ?></small></td>
                             <td>
-                                <button class="btn btn-small btn-primary" onclick="verDetalhes(<?= $log['id'] ?>, '<?= addslashes($log['descricao']) ?>', <?= htmlspecialchars(json_encode($log['dados_antes'])) ?>, <?= htmlspecialchars(json_encode($log['dados_depois'])) ?>)">
+                                <button class="btn btn-small btn-primary" onclick="verDetalhes(<?= $log['id'] ?>, '<?= addslashes($log['detalhes']) ?>')">
                                     Ver
                                 </button>
                             </td>
@@ -178,22 +178,11 @@
 </div>
 
 <script>
-function verDetalhes(id, descricao, dadosAntes, dadosDepois) {
+function verDetalhes(id, detalhes) {
     let html = '<div class="card mb-3"><div class="card-body">';
     html += '<p><strong>ID:</strong> ' + id + '</p>';
-    html += '<p><strong>Descrição Completa:</strong></p>';
-    html += '<p>' + descricao + '</p>';
-    
-    if (dadosAntes && Object.keys(dadosAntes).length > 0) {
-        html += '<h3>Dados Antes:</h3>';
-        html += '<pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow: auto;">' + JSON.stringify(dadosAntes, null, 2) + '</pre>';
-    }
-    
-    if (dadosDepois && Object.keys(dadosDepois).length > 0) {
-        html += '<h3>Dados Depois:</h3>';
-        html += '<pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow: auto;">' + JSON.stringify(dadosDepois, null, 2) + '</pre>';
-    }
-    
+    html += '<p><strong>Detalhes Completos:</strong></p>';
+    html += '<pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow: auto; white-space: pre-wrap;">' + detalhes + '</pre>';
     html += '</div></div>';
     
     document.getElementById('modalContent').innerHTML = html;

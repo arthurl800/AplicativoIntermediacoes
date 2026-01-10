@@ -48,38 +48,40 @@ class AuditLogger {
     ): bool {
         try {
             // Obtém informações do usuário da sessão se não fornecidas
-            if ($usuarioId === null || $usuarioNome === null) {
+            if ($usuarioNome === null) {
                 $authManager = new AuthManager();
                 $currentUser = $authManager->getCurrentUser();
-                $usuarioId = $currentUser['id'] ?? null;
                 $usuarioNome = $currentUser['username'] ?? 'Sistema';
             }
 
             // Obtém informações da requisição
             $ipAddress = $this->getClientIp();
-            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
 
-            // Prepara dados JSON
-            $dadosAntesJson = $dadosAntes ? json_encode($dadosAntes, JSON_UNESCAPED_UNICODE) : null;
-            $dadosDepoisJson = $dadosDepois ? json_encode($dadosDepois, JSON_UNESCAPED_UNICODE) : null;
+            // Prepara detalhes concatenando descrição com dados
+            $detalhes = $descricao;
+            if ($dadosAntes || $dadosDepois) {
+                $detalhes .= "\n";
+                if ($dadosAntes) {
+                    $detalhes .= "Antes: " . json_encode($dadosAntes, JSON_UNESCAPED_UNICODE) . "\n";
+                }
+                if ($dadosDepois) {
+                    $detalhes .= "Depois: " . json_encode($dadosDepois, JSON_UNESCAPED_UNICODE);
+                }
+            }
 
-            // Insere no banco de dados
+            // Insere no banco de dados com os nomes corretos das colunas
             $sql = "INSERT INTO AUDITORIA_SISTEMA 
-                    (usuario_id, usuario_nome, acao, modulo, descricao, dados_antes, dados_depois, ip_address, user_agent) 
+                    (usuario_name, acao, modulo, detalhes, ip_address) 
                     VALUES 
-                    (:usuario_id, :usuario_nome, :acao, :modulo, :descricao, :dados_antes, :dados_depois, :ip_address, :user_agent)";
+                    (:usuario_name, :acao, :modulo, :detalhes, :ip_address)";
 
             $stmt = $this->pdo->prepare($sql);
             $result = $stmt->execute([
-                ':usuario_id' => $usuarioId,
-                ':usuario_nome' => $usuarioNome,
+                ':usuario_name' => $usuarioNome,
                 ':acao' => $acao,
                 ':modulo' => $modulo,
-                ':descricao' => $descricao,
-                ':dados_antes' => $dadosAntesJson,
-                ':dados_depois' => $dadosDepoisJson,
-                ':ip_address' => $ipAddress,
-                ':user_agent' => $userAgent
+                ':detalhes' => $detalhes,
+                ':ip_address' => $ipAddress
             ]);
 
             return $result;
@@ -191,7 +193,7 @@ class AuditLogger {
     /**
      * Busca logs de auditoria com filtros
      * 
-     * @param array $filtros Filtros opcionais (usuario_id, modulo, acao, data_inicio, data_fim)
+     * @param array $filtros Filtros opcionais (usuario_name, modulo, acao, data_inicio, data_fim)
      * @param int $limit Limite de registros
      * @param int $offset Offset para paginação
      * @return array
@@ -201,9 +203,14 @@ class AuditLogger {
             $where = [];
             $params = [];
 
+            if (!empty($filtros['usuario_name'])) {
+                $where[] = "usuario_name = :usuario_name";
+                $params[':usuario_name'] = $filtros['usuario_name'];
+            }
+            
+            // Suporte para usuario_id (converte para usuario_name se necessário)
             if (!empty($filtros['usuario_id'])) {
-                $where[] = "usuario_id = :usuario_id";
-                $params[':usuario_id'] = $filtros['usuario_id'];
+                // Ignora, pois a tabela não tem usuario_id
             }
 
             if (!empty($filtros['modulo'])) {
@@ -217,12 +224,12 @@ class AuditLogger {
             }
 
             if (!empty($filtros['data_inicio'])) {
-                $where[] = "data_acao >= :data_inicio";
+                $where[] = "data_hora >= :data_inicio";
                 $params[':data_inicio'] = $filtros['data_inicio'];
             }
 
             if (!empty($filtros['data_fim'])) {
-                $where[] = "data_acao <= :data_fim";
+                $where[] = "data_hora <= :data_fim";
                 $params[':data_fim'] = $filtros['data_fim'] . ' 23:59:59';
             }
 
@@ -230,7 +237,7 @@ class AuditLogger {
 
             $sql = "SELECT * FROM AUDITORIA_SISTEMA 
                     {$whereClause}
-                    ORDER BY data_acao DESC
+                    ORDER BY data_hora DESC
                     LIMIT :limit OFFSET :offset";
 
             $stmt = $this->pdo->prepare($sql);
@@ -258,9 +265,13 @@ class AuditLogger {
             $where = [];
             $params = [];
 
+            if (!empty($filtros['usuario_name'])) {
+                $where[] = "usuario_name = :usuario_name";
+                $params[':usuario_name'] = $filtros['usuario_name'];
+            }
+            
             if (!empty($filtros['usuario_id'])) {
-                $where[] = "usuario_id = :usuario_id";
-                $params[':usuario_id'] = $filtros['usuario_id'];
+                // Ignora, pois a tabela não tem usuario_id
             }
 
             if (!empty($filtros['modulo'])) {
@@ -274,12 +285,12 @@ class AuditLogger {
             }
 
             if (!empty($filtros['data_inicio'])) {
-                $where[] = "data_acao >= :data_inicio";
+                $where[] = "data_hora >= :data_inicio";
                 $params[':data_inicio'] = $filtros['data_inicio'];
             }
 
             if (!empty($filtros['data_fim'])) {
-                $where[] = "data_acao <= :data_fim";
+                $where[] = "data_hora <= :data_fim";
                 $params[':data_fim'] = $filtros['data_fim'] . ' 23:59:59';
             }
 

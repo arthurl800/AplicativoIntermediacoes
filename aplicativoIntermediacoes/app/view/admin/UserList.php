@@ -23,19 +23,21 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Nome de Usuário</th>
+                    <th>Nome do Usuário</th>
+                    <th>Email</th>
                     <th>CPF</th>
-                    <th>Tipo de Usuario</th>
+                    <th>Tipo de Usuário</th>
                     <th>Ações</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($users as $u): ?>
                     <tr>
-                        <td><?= htmlspecialchars($u['id']) ?></td>
-                        <td><?= htmlspecialchars($u['username']) ?></td>
-                        <td><?= htmlspecialchars($u['cpf']) ?></td>
-                        <td><?= htmlspecialchars($u['role']) ?></td>
+                        <td><?= htmlspecialchars($u['id'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($u['username'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($u['email'] ?? '-') ?></td>
+                        <td><?= htmlspecialchars($u['CPF'] ?? '-') ?></td>
+                        <td><?= htmlspecialchars($u['role'] ?? '') ?></td>
                         <td>
                             <?php 
                                 $isCurrentUser = ($u['id'] == ($currentUser['id'] ?? null));

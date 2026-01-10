@@ -7,6 +7,9 @@ ini_set('post_max_size', '100M');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Limpa cache antes de carregar qualquer classe
+clearstatcache(true);
+
 // Este é o único arquivo acessível diretamente, agindo como o roteador (Router).
 
 // Carrega as classes externas (PhpSpreadsheet) e as classes internas

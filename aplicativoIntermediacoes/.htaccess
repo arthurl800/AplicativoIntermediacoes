@@ -1,29 +1,24 @@
+# =====================================================
+# HTACCESS OTIMIZADO PARA INFINITYFREE
+# =====================================================
+
 # Segurança - Ocultar arquivos sensíveis
-<Files .env>
-    Order allow,deny
-    Deny from all
-</Files>
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>
 
-<Files .env.example>
-    Order allow,deny
-    Deny from all
-</Files>
+<FilesMatch "^(composer\.json|setup_database\.sql|check_deploy\.php)$">
+    Require all denied
+</FilesMatch>
 
-<Files composer.json>
-    Order allow,deny
-    Deny from all
-</Files>
-
-<Files setup_database.sql>
-    Order allow,deny
-    Deny from all
-</Files>
-
-# Configurações de memória e upload para processar arquivos grandes
-php_value memory_limit 512M
-php_value max_execution_time 300
-php_value upload_max_filesize 50M
-php_value post_max_size 50M
+# Configurações PHP (compatível com InfinityFree)
+# Nota: InfinityFree pode ignorar algumas destas configurações
+<IfModule mod_php7.c>
+    php_value memory_limit 256M
+    php_value max_execution_time 300
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+</IfModule>
 
 # Habilita compressão para melhor performance
 <IfModule mod_deflate.c>
@@ -31,31 +26,27 @@ php_value post_max_size 50M
 </IfModule>
 
 # Proteção de diretórios
-Options -Indexes
+Options -Indexes +FollowSymLinks
+
+# Página inicial padrão
+DirectoryIndex index.php index.html
 
 # Redireciona tudo para index.php (front controller)
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
-    # IMPORTANTE: Ajuste RewriteBase para produção
-    # Em produção (raiz do domínio): RewriteBase /
-    # Em desenvolvimento (subpasta): RewriteBase /aplicativoIntermediacoes/
     RewriteBase /
     
-    # Redirecionar HTTP para HTTPS (descomente após ativar SSL)
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    # Proteger diretórios sensíveis (sem flag F que pode causar 403)
+    RewriteRule ^config/.*$ - [NC,L,R=404]
+    RewriteRule ^logs/.*$ - [NC,L,R=404]
+    RewriteRule ^vendor/(?!autoload\.php).*$ - [NC,L,R=404]
     
-    # Proteger diretórios sensíveis
-    RewriteRule ^config/ - [F,L]
-    RewriteRule ^logs/ - [F,L]
-    
-    # Permite acesso a arquivos estáticos
+    # Permite acesso direto a arquivos e diretórios existentes
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     
-    # Redireciona para index.php
-    RewriteRule ^(.*)$ index.php [QSA,L]
+    # Redireciona tudo para index.php
+    RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
 </IfModule>
 
 # Cabeçalhos de segurança

@@ -48,6 +48,13 @@ class Database {
     }
 
     /**
+     * Reseta a instância do Singleton (útil para testes ou reconfiguração)
+     */
+    public static function resetInstance(): void {
+        self::$instance = null;
+    }
+
+    /**
      * Retorna o objeto PDO.
      */
     public function getConnection(): PDO {
