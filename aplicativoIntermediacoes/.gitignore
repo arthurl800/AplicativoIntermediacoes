@@ -1,3 +1,6 @@
+# Variáveis de ambiente (credenciais)
+.env
+
 # Ignore local configuration with credentials
 /config/database.php
 

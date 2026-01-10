@@ -1,8 +1,29 @@
+# Segurança - Ocultar arquivos sensíveis
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files .env.example>
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files composer.json>
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files setup_database.sql>
+    Order allow,deny
+    Deny from all
+</Files>
+
 # Configurações de memória e upload para processar arquivos grandes
-php_value memory_limit 2048M
+php_value memory_limit 512M
 php_value max_execution_time 300
-php_value upload_max_filesize 100M
-php_value post_max_size 100M
+php_value upload_max_filesize 50M
+php_value post_max_size 50M
 
 # Habilita compressão para melhor performance
 <IfModule mod_deflate.c>
@@ -15,7 +36,19 @@ Options -Indexes
 # Redireciona tudo para index.php (front controller)
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /aplicativoIntermediacoes/
+    
+    # IMPORTANTE: Ajuste RewriteBase para produção
+    # Em produção (raiz do domínio): RewriteBase /
+    # Em desenvolvimento (subpasta): RewriteBase /aplicativoIntermediacoes/
+    RewriteBase /
+    
+    # Redirecionar HTTP para HTTPS (descomente após ativar SSL)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    
+    # Proteger diretórios sensíveis
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^logs/ - [F,L]
     
     # Permite acesso a arquivos estáticos
     RewriteCond %{REQUEST_FILENAME} !-f
@@ -23,4 +56,11 @@ Options -Indexes
     
     # Redireciona para index.php
     RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Cabeçalhos de segurança
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
 </IfModule>
