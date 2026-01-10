@@ -99,11 +99,32 @@ class UserModel {
      * @return array|null
      */
     public function findById(int $id): ?array {
-        $sql = "SELECT id, username, CPF, role FROM {$this->table} WHERE id = :id LIMIT 1";
+        $sql = "SELECT id, username, password_hash as password, CPF, role FROM {$this->table} WHERE id = :id LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    /**
+     * Atualiza apenas a senha de um usuário.
+     * @param int $id
+     * @param string $newPassword
+     * @return bool
+     */
+    public function updatePassword(int $id, string $newPassword): bool {
+        $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        $sql = "UPDATE {$this->table} SET password_hash = :password_hash WHERE id = :id";
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':password_hash' => $passwordHash,
+                ':id' => $id
+            ]);
+        } catch (PDOException $e) {
+            error_log("Erro ao atualizar senha: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**

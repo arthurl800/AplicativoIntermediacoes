@@ -162,4 +162,84 @@ class AuthController {
         $this->authManager->logout();
         AuthManager::redirectTo('index.php?controller=auth&action=login');
     }
+
+    // Exibe formulário para alterar a própria senha
+    public function changePassword() {
+        // Apenas usuários logados podem acessar
+        if (!$this->authManager->isLoggedIn()) {
+            $_SESSION['auth_error'] = "Você precisa estar logado para alterar sua senha.";
+            AuthManager::redirectTo('index.php?controller=auth&action=login');
+            return;
+        }
+        
+        $base_dir = dirname(dirname(__DIR__));
+        include $base_dir . '/includes/header.php';
+        include $base_dir . '/app/view/auth/ChangePasswordForm.php'; 
+        include $base_dir . '/includes/footer.php';
+    }
+
+    // Processa a alteração de senha
+    public function processChangePassword() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            AuthManager::redirectTo('index.php?controller=auth&action=changePassword');
+            return;
+        }
+
+        // Apenas usuários logados podem alterar senha
+        if (!$this->authManager->isLoggedIn()) {
+            $_SESSION['auth_error'] = "Você precisa estar logado.";
+            AuthManager::redirectTo('index.php?controller=auth&action=login');
+            return;
+        }
+
+        $currentUser = $this->authManager->getCurrentUser();
+        $userId = $currentUser['id'];
+        $username = $currentUser['username'];
+
+        $currentPassword = $_POST['current_password'] ?? '';
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+
+        // Validações
+        if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+            $_SESSION['auth_error'] = "Todos os campos são obrigatórios.";
+            AuthManager::redirectTo('index.php?controller=auth&action=changePassword');
+            return;
+        }
+
+        if ($newPassword !== $confirmPassword) {
+            $_SESSION['auth_error'] = "A nova senha e a confirmação não coincidem.";
+            AuthManager::redirectTo('index.php?controller=auth&action=changePassword');
+            return;
+        }
+
+        if (strlen($newPassword) < 6) {
+            $_SESSION['auth_error'] = "A nova senha deve ter pelo menos 6 caracteres.";
+            AuthManager::redirectTo('index.php?controller=auth&action=changePassword');
+            return;
+        }
+
+        // Verifica a senha atual
+        $user = $this->userModel->findById($userId);
+        if (!$user || !password_verify($currentPassword, $user['password'])) {
+            $_SESSION['auth_error'] = "Senha atual incorreta.";
+            $this->auditLogger->log('CHANGE_PASSWORD_FALHA', 'AUTENTICACAO', 
+                "Tentativa falha de alteração de senha: senha atual incorreta", 
+                null, null, $userId, $username);
+            AuthManager::redirectTo('index.php?controller=auth&action=changePassword');
+            return;
+        }
+
+        // Atualiza a senha
+        if ($this->userModel->updatePassword($userId, $newPassword)) {
+            $_SESSION['auth_success'] = "Senha alterada com sucesso!";
+            $this->auditLogger->log('CHANGE_PASSWORD_SUCESSO', 'AUTENTICACAO', 
+                "Usuário {$username} alterou sua senha", 
+                null, null, $userId, $username);
+            AuthManager::redirectTo('index.php?controller=dashboard&action=index');
+        } else {
+            $_SESSION['auth_error'] = "Erro ao alterar senha. Tente novamente.";
+            AuthManager::redirectTo('index.php?controller=auth&action=changePassword');
+        }
+    }
 }

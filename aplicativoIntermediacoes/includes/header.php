@@ -96,7 +96,13 @@ $currentUser = $authManager->getCurrentUser();
             <!-- Informações do Usuário -->
             <?php if ($isLoggedIn): ?>
                 <div class="user-info">
-                    <span> <?= htmlspecialchars($currentUser['username'] ?? 'Usuário') ?></span>
+                    <span><?= htmlspecialchars($currentUser['username'] ?? 'Usuário') ?></span>
+                    <a href="index.php?controller=auth&action=changePassword" class="change-password-btn" title="Alterar Senha"
+                        style="border-bottom: 2px solid white;
+                        padding-bottom: 2px;
+                        text-decoration: none;
+                        border-radius: 0;
+                        color: white;">Alterar Senha</a>
                     <a href="index.php?controller=auth&action=logout" class="logout-btn"> SAIR</a>
                 </div>
             <?php endif; ?>
