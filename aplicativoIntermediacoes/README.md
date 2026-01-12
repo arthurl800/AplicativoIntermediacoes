@@ -1,6 +1,15 @@
-# 📦 Sistema de Intermediações
+# 📦 Sistema de Intermediações - Experimento Tecnologias
 
-Sistema web para gerenciamento de intermediações financeiras, negociações e auditoria completa.
+Sistema web moderno e intuitivo para gerenciamento de intermediações financeiras, negociações e auditoria completa.
+
+## 🎨 Design Moderno
+
+Sistema completamente redesenhado com:
+- Interface moderna e clean, sem ícones desnecessários
+- Gradientes suaves e animações fluidas
+- Design responsivo e mobile-first
+- Sistema de cores intuitivo e acessível
+- Identidade visual profissional da Experimento Tecnologias
 
 ## 🌟 Funcionalidades
 
@@ -12,14 +21,6 @@ Sistema web para gerenciamento de intermediações financeiras, negociações e 
 - ✅ Gerenciamento de usuários e permissões
 - ✅ Sistema de autenticação seguro
 - ✅ Interface responsiva (mobile-friendly)
-
-## 🚀 Deploy
-
-Consulte o arquivo [DEPLOY_GUIDE.md](DEPLOY_GUIDE.md) para instruções detalhadas de publicação.
-
-### Hospedagens Gratuitas Recomendadas:
-- **InfinityFree** (recomendado): https://infinityfree.net
-- **000webhost**: https://www.000webhost.com
 
 ## 💻 Desenvolvimento Local
 
@@ -127,10 +128,10 @@ arthurl800
 ## 🆘 Suporte
 
 Para problemas ou dúvidas:
-1. Consulte o [DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)
-2. Verifique os logs em `logs/`
-3. Abra uma issue no GitHub
+
+    Consulte o desenvolvedor
+
 
 ---
 
-**Desenvolvido com ❤️ para facilitar o gerenciamento de intermediações financeiras**
+**Desenvolvido com dedicação para facilitar o gerenciamento de intermediações financeiras**

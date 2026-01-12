@@ -1,5 +1,5 @@
 # =====================================================
-# HTACCESS OTIMIZADO PARA INFINITYFREE
+# HTACCESS OTIMIZADO
 # =====================================================
 
 # Segurança - Ocultar arquivos sensíveis
@@ -22,7 +22,18 @@
 
 # Habilita compressão para melhor performance
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# Tipo MIME para SVG
+AddType image/svg+xml .svg
+
+# Cache de recursos estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
 </IfModule>
 
 # Proteção de diretórios

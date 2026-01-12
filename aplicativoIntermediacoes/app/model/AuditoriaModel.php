@@ -8,6 +8,8 @@ class AuditoriaModel {
     private $pdo;
 
     public function __construct() {
+        // Define o timezone para o horário de Brasília (GMT-3)
+        date_default_timezone_set('America/Sao_Paulo');
         $this->pdo = Database::getInstance()->getConnection();
     }
 
@@ -176,9 +178,9 @@ class AuditoriaModel {
     ): bool {
         try {
             $sql = "INSERT INTO NEGOCIACOES_AUDITORIA 
-                    (negociacao_id, acao, usuario_name, usuario_ip, dados_antes, dados_depois, descricao_mudanca) 
+                    (negociacao_id, acao, usuario_name, usuario_ip, dados_antes, dados_depois, descricao_mudanca, data_hora) 
                     VALUES 
-                    (:negociacao_id, :acao, :usuario_name, :usuario_ip, :dados_antes, :dados_depois, :descricao_mudanca)";
+                    (:negociacao_id, :acao, :usuario_name, :usuario_ip, :dados_antes, :dados_depois, :descricao_mudanca, :data_hora)";
             
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':negociacao_id', $negociacaoId, PDO::PARAM_INT);
@@ -188,6 +190,7 @@ class AuditoriaModel {
             $stmt->bindValue(':dados_antes', $dadosAntes ? json_encode($dadosAntes, JSON_UNESCAPED_UNICODE) : null);
             $stmt->bindValue(':dados_depois', $dadosDepois ? json_encode($dadosDepois, JSON_UNESCAPED_UNICODE) : null);
             $stmt->bindValue(':descricao_mudanca', $descricaoMudanca);
+            $stmt->bindValue(':data_hora', date('Y-m-d H:i:s'));
             
             return $stmt->execute();
         } catch (PDOException $e) {

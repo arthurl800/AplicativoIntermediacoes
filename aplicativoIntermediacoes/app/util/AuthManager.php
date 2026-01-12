@@ -47,6 +47,15 @@ class AuthManager {
     }
 
     /**
+     * Verifica se o usuário tem uma role específica.
+     * @param string $role
+     * @return bool
+     */
+    public function hasRole(string $role): bool {
+        return $this->isLoggedIn() && ($_SESSION['role'] ?? 'user') === $role;
+    }
+
+    /**
      * Retorna os dados básicos do usuário logado (ID, username e role).
      * Esta função é usada no header para exibir informações e links.
      * @return array|null

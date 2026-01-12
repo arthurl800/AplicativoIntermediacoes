@@ -13,6 +13,8 @@ class AuditLogger {
 
     private function __construct() {
         $this->pdo = Database::getInstance()->getConnection();
+        // Define o timezone para horário de Brasília (GMT-3)
+        date_default_timezone_set('America/Sao_Paulo');
     }
 
     /**
@@ -69,11 +71,14 @@ class AuditLogger {
                 }
             }
 
+            // Obtém a data/hora atual no timezone brasileiro
+            $dataHora = date('Y-m-d H:i:s');
+
             // Insere no banco de dados com os nomes corretos das colunas
             $sql = "INSERT INTO AUDITORIA_SISTEMA 
-                    (usuario_name, acao, modulo, detalhes, ip_address) 
+                    (usuario_name, acao, modulo, detalhes, ip_address, data_hora) 
                     VALUES 
-                    (:usuario_name, :acao, :modulo, :detalhes, :ip_address)";
+                    (:usuario_name, :acao, :modulo, :detalhes, :ip_address, :data_hora)";
 
             $stmt = $this->pdo->prepare($sql);
             $result = $stmt->execute([
@@ -81,7 +86,8 @@ class AuditLogger {
                 ':acao' => $acao,
                 ':modulo' => $modulo,
                 ':detalhes' => $detalhes,
-                ':ip_address' => $ipAddress
+                ':ip_address' => $ipAddress,
+                ':data_hora' => $dataHora
             ]);
 
             return $result;

@@ -25,8 +25,14 @@ require_once __DIR__ . '/app/controller/RelatorioController.php';
 require_once __DIR__ . '/app/controller/NegociacaoController.php';
 
 // Roteamento Simples: determina qual Controller e Ação (método) executar
-$controllerName = $_GET['controller'] ?? 'auth'; // Padrão AGORA é 'auth'
-$actionName     = $_GET['action'] ?? 'login';    // Padrão AGORA é 'login'
+// Se não houver parâmetros, redireciona para a landing page
+if (empty($_GET['controller']) && empty($_GET['action'])) {
+    header('Location: landing.php');
+    exit;
+}
+
+$controllerName = $_GET['controller'] ?? 'auth';
+$actionName     = $_GET['action'] ?? 'login';
 
 // Mapeamento de Controllers
 $controllers = [
